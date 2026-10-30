@@ -8,7 +8,7 @@
 export type LogLine = { type: "log" | "error" | "warn" | "info" | "system"; text: string };
 
 const RUNNER_HTML = `<!doctype html><html><head>
-<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'unsafe-inline' blob:; worker-src blob:; connect-src 'none'">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'unsafe-inline' 'unsafe-eval' blob:; worker-src blob:; connect-src 'none'">
 </head><body><script>
 const WORKER_SRC = \`
   const fmt = (v) => { try { if (typeof v === 'string') return v; if (v instanceof Error) return v.name + ': ' + v.message;
