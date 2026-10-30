@@ -19,5 +19,20 @@ export async function notifyProfile(role: "student" | "mentor" | "recruiter", pr
 
 /** Demo/fictional seed data is hidden unless explicitly enabled for a demo. */
 export const showDemoData = () => process.env.GURUKOOL_SHOW_DEMO_DATA === "true";
-/** Mongo filter for mentors students may discover and book: admin-verified (plus demo profiles if enabled). */
-export const discoverableMentor = () => (showDemoData() ? { $or: [{ verified: true }, { isDemo: true }] } : { verified: true });
+/**
+ * Single source of truth for expert approval is User.approved (what the Admin portal shows/changes).
+ * Mirror it onto Mentor.verified (repairs experts approved before the flag existed; hides suspended/revoked ones).
+ */
+export async function syncMentorVerification() {
+  const { Mentor } = await import("@/models/connect");
+  const ids = (await User.find({ role: "mentor", approved: true, active: { $ne: false } }).distinct("profileId")) as string[];
+  const valid = ids.filter((x) => /^[a-f0-9]{24}$/i.test(x));
+  await Mentor.updateMany({ _id: { $in: valid }, verified: { $ne: true } }, { $set: { verified: true } });
+  await Mentor.updateMany({ _id: { $nin: valid }, verified: true, isDemo: { $ne: true } }, { $set: { verified: false } });
+}
+
+/** Mongo filter for mentors students may discover and book: admin-approved (plus demo profiles if enabled). */
+export async function discoverableMentor() {
+  await syncMentorVerification();
+  return showDemoData() ? { $or: [{ verified: true }, { isDemo: true }] } : { verified: true };
+}

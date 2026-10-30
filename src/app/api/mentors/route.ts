@@ -20,7 +20,7 @@ export async function GET(req: Request) {
     const day = sp.get("day") ?? "";
     const format = sp.get("format") ?? "";
 
-    const filter: Record<string, unknown> = { profileStatus: "active", ...discoverableMentor() };
+    const filter: Record<string, unknown> = { profileStatus: "active", ...(await discoverableMentor()) };
     if (domain) filter.domains = domain;
     if (day) filter["availability.day"] = day;
     if (format) filter.sessionFormats = format;

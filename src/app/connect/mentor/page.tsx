@@ -202,6 +202,7 @@ export default function MentorDashboard() {
       <PageHeader title="Mentor Dashboard" subtitle={mentor ? `${mentor.name} · ${mentor.designation}` : "Loading…"}
         right={mentor && <div className="flex items-center gap-2"><ProfileBadge isDemo={mentor.isDemo} verified={mentor.verified} /><Link href={`/connect/mentors/${mentor.id}`} className="btn-ghost">View public profile</Link></div>} />
       <ApprovalBanner />
+      {mentor && mentor.profileStatus !== "active" && <Alert kind="warn">Your profile is hidden from students until you complete and save the <b>Professional Profile</b> section below.</Alert>}
       <ErrorAlert err={err} />
       {notice && <Alert kind="success">{notice}</Alert>}
 

@@ -37,7 +37,7 @@ export async function GET(req: Request) {
       missingSkills: gap?.missing ?? [],
       interests: student.interests ?? [],
     };
-    const mentors = (await Mentor.find({ profileStatus: "active", ...discoverableMentor() }).lean()) as unknown as MentorT[];
+    const mentors = (await Mentor.find({ profileStatus: "active", ...(await discoverableMentor()) }).lean()) as unknown as MentorT[];
     return NextResponse.json({
       recommendations: recommendMentors(mentors, ctx, limit),
       basedOn: ctx,

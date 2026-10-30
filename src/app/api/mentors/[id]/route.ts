@@ -7,7 +7,7 @@ import { apiError, badRequest, notFound } from "@/lib/api";
 import { parseMentorInput, publicMentor } from "@/lib/mentors";
 import { ForbiddenError, getPersona } from "@/lib/persona";
 import { User } from "@/models/user";
-import { showDemoData } from "@/lib/notify";
+import { showDemoData, syncMentorVerification } from "@/lib/notify";
 import { upcomingSlots } from "@/lib/slots";
 
 export const dynamic = "force-dynamic";
@@ -18,6 +18,7 @@ export async function GET(_req: Request, ctx: { params: Promise<{ id: string }> 
     if (!mongoose.isValidObjectId(id)) return notFound("Mentor not found");
     await connectDB();
     await ensureSeed();
+    await syncMentorVerification();
     const m = (await Mentor.findById(id).lean()) as MentorT | null;
     const persona = await getPersona();
     const isOwner = persona.role === "mentor" && persona.id === id;

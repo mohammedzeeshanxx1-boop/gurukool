@@ -9,7 +9,7 @@ import { ForbiddenError, getPersona, requireRole } from "@/lib/persona";
 import { DURATIONS, upcomingSlots } from "@/lib/slots";
 import { publicSession, type SessionDoc } from "@/lib/sessions";
 import { User } from "@/models/user";
-import { notifyProfile, showDemoData } from "@/lib/notify";
+import { notifyProfile, showDemoData, syncMentorVerification } from "@/lib/notify";
 import { fmtDateTimeIST } from "@/lib/slots";
 
 export const dynamic = "force-dynamic";
@@ -61,6 +61,7 @@ export async function POST(req: Request) {
     await ensureSeed();
     const student = await Student.findOne({ key: p.id }).lean();
     if (!student) return badRequest("Save your student profile on the Dashboard first.");
+    await syncMentorVerification();
     const mentor = (await Mentor.findById(b.mentorId).lean()) as MentorT | null;
     const bookable = mentor && mentor.profileStatus === "active" && ((mentor as { verified?: boolean }).verified || (showDemoData() && mentor.isDemo));
     if (!mentor || !bookable) return notFound("Mentor not found or not yet verified");

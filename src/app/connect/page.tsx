@@ -32,7 +32,11 @@ function useMentors(params: Record<string, string>) {
         .catch((e) => setErr(toErr(e)))
         .finally(() => setLoading(false));
     }, 250); // debounce typing
-    return () => clearTimeout(t);
+    // Keep the expert list fresh: refetch when the tab regains focus and every 30s.
+    const refresh = () => api<{ mentors: Mentor[]; facets: Facets }>(`/api/mentors?${qs}`).then((d) => { setMentors(d.mentors); setFacets(d.facets); }).catch(() => {});
+    const iv = setInterval(refresh, 30000);
+    window.addEventListener("focus", refresh);
+    return () => { clearTimeout(t); clearInterval(iv); window.removeEventListener("focus", refresh); };
   }, [key]);
   return { mentors, facets, err, loading };
 }
