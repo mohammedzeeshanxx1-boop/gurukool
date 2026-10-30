@@ -38,7 +38,7 @@ The Dashboard's **System status** card shows live MongoDB / AI / Connect status.
 
 - AI key and DB URI are only read in server route handlers (`src/lib/ai.ts` is `server-only`).
 - Code execution never touches the server: it runs in a Web Worker inside a `sandbox="allow-scripts"` iframe (opaque origin, no cookies/DOM/storage of the app), with CSP `connect-src 'none'` and a 5-second kill timer. If the sandbox can't start, the UI says "Execution unavailable" instead of pretending.
-- Compete listings are labeled **demo data**; no live events or registration links.
+- Compete shows **live** open/upcoming hackathons from Devpost's free public JSON endpoint (no API key), fetched server-side and cached 15 min. Each card links to the real Devpost page.
 
 ## Structure
 
