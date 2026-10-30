@@ -8,7 +8,8 @@
     "start": "next start",
     "typecheck": "tsc --noEmit",
     "test:connect": "node scripts/e2e-connect.mjs",
-    "test:train": "node scripts/e2e-train.mjs"
+    "test:train": "node scripts/e2e-train.mjs",
+    "create-user": "node scripts/create-user.mjs"
   },
   "keywords": [],
   "author": "",

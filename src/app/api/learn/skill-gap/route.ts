@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { connectDB } from "@/lib/db";
-import { Student, DEMO_KEY } from "@/models";
+import { Student } from "@/models";
+import { requireRole } from "@/lib/persona";
 import { apiError, badRequest } from "@/lib/api";
 import { analyzeSkillGap, isCareerGoal } from "@/lib/careers";
 import { chat, isAiConfigured } from "@/lib/ai";
@@ -9,10 +10,11 @@ export const dynamic = "force-dynamic";
 
 export async function POST(req: Request) {
   try {
+    const KEY = (await requireRole("student")).id;
     const { goal } = await req.json().catch(() => ({}));
     if (!isCareerGoal(goal)) return badRequest("Pick a valid career goal");
     await connectDB();
-    const student = await Student.findOne({ key: DEMO_KEY }).lean();
+    const student = await Student.findOne({ key: KEY }).lean();
     if (!student) return badRequest("Save your student profile first (Dashboard).");
 
     const analysis = analyzeSkillGap(student.skills ?? [], goal);

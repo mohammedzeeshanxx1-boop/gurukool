@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { DbNotConfiguredError } from "./db";
 import { AiNotConfiguredError } from "./ai";
-import { ForbiddenError } from "./persona";
+import { ForbiddenError, UnauthorizedError } from "./persona";
 
 /** Consistent JSON error responses with a `code` the UI can show config help for. */
 export function apiError(e: unknown) {
@@ -9,6 +9,8 @@ export function apiError(e: unknown) {
     return NextResponse.json({ error: e.message, code: "DB_NOT_CONFIGURED" }, { status: 503 });
   if (e instanceof AiNotConfiguredError)
     return NextResponse.json({ error: e.message, code: "AI_NOT_CONFIGURED" }, { status: 503 });
+  if (e instanceof UnauthorizedError)
+    return NextResponse.json({ error: e.message, code: "UNAUTHORIZED" }, { status: 401 });
   if (e instanceof ForbiddenError)
     return NextResponse.json({ error: e.message, code: "FORBIDDEN" }, { status: 403 });
   const msg = e instanceof Error ? e.message : String(e);

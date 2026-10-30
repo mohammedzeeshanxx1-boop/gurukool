@@ -1,7 +1,8 @@
 import { NextResponse } from "next/server";
 import mongoose from "mongoose";
 import { connectDB } from "@/lib/db";
-import { Assessment, DEMO_KEY } from "@/models";
+import { Assessment } from "@/models";
+import { requireRole } from "@/lib/persona";
 import { apiError, badRequest } from "@/lib/api";
 import type { MCQ } from "@/lib/questionBank";
 
@@ -9,11 +10,12 @@ export const dynamic = "force-dynamic";
 
 export async function POST(req: Request, ctx: { params: Promise<{ id: string }> }) {
   try {
+    const KEY = (await requireRole("student")).id;
     const { id } = await ctx.params;
     if (!mongoose.isValidObjectId(id)) return badRequest("Invalid assessment id");
     const { answers } = await req.json().catch(() => ({}));
     await connectDB();
-    const a = await Assessment.findOne({ _id: id, studentKey: DEMO_KEY });
+    const a = await Assessment.findOne({ _id: id, studentKey: KEY });
     if (!a) return NextResponse.json({ error: "Assessment not found" }, { status: 404 });
     if (a.submittedAt) return badRequest("This assessment was already submitted");
     const qs = a.questions as MCQ[];

@@ -239,7 +239,7 @@ export default function MentorDashboard() {
           <section className="card space-y-3">
             <h2 className="h2">Professional Profile</h2>
             <ProfileEditor initial={toForm(mentor)} saveLabel="Save profile" onSave={async (f) => {
-              const r = await api<{ mentor: Mentor }>(`/api/mentors/${mentor.id}`, { method: "PATCH", body: JSON.stringify(f) });
+              const r = await api<{ mentor: Mentor }>(`/api/mentors/${mentor.id}`, { method: "PATCH", body: JSON.stringify({ ...f, profileStatus: "active" }) });
               setMentor(r.mentor);
             }} />
           </section>

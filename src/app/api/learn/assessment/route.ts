@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { connectDB } from "@/lib/db";
-import { Assessment, Student, DEMO_KEY } from "@/models";
+import { Assessment, Student } from "@/models";
+import { requireRole } from "@/lib/persona";
 import { apiError, badRequest } from "@/lib/api";
 import { analyzeSkillGap, isCareerGoal } from "@/lib/careers";
 import { chatJSON, isAiConfigured } from "@/lib/ai";
@@ -40,10 +41,11 @@ function publicView(a: { _id: unknown; careerGoal: string; source: string; quest
 
 export async function POST(req: Request) {
   try {
+    const KEY = (await requireRole("student")).id;
     const { goal } = await req.json().catch(() => ({}));
     if (!isCareerGoal(goal)) return badRequest("Pick a valid career goal");
     await connectDB();
-    const student = await Student.findOne({ key: DEMO_KEY }).lean();
+    const student = await Student.findOne({ key: KEY }).lean();
     if (!student) return badRequest("Save your student profile first (Dashboard).");
 
     let questions: MCQ[] | null = null;
@@ -74,7 +76,7 @@ Return JSON: {"questions":[{"question":string,"options":[string,string,string,st
     if (!questions) questions = bankQuestions(goal);
 
     const doc = await Assessment.create({
-      studentKey: DEMO_KEY,
+      studentKey: KEY,
       careerGoal: goal,
       source,
       questions,
@@ -88,11 +90,12 @@ Return JSON: {"questions":[{"question":string,"options":[string,string,string,st
 
 export async function GET() {
   try {
+    const KEY = (await requireRole("student")).id;
     await connectDB();
-    const latest = await Assessment.findOne({ studentKey: DEMO_KEY, submittedAt: { $ne: null } })
+    const latest = await Assessment.findOne({ studentKey: KEY, submittedAt: { $ne: null } })
       .sort({ submittedAt: -1 })
       .lean<{ _id: unknown; careerGoal: string; score: number; total: number; weakTopics: string[]; source: string; submittedAt: Date }>();
-    const count = await Assessment.countDocuments({ studentKey: DEMO_KEY, submittedAt: { $ne: null } });
+    const count = await Assessment.countDocuments({ studentKey: KEY, submittedAt: { $ne: null } });
     return NextResponse.json({
       latest: latest && {
         id: String(latest._id), careerGoal: latest.careerGoal, score: latest.score, total: latest.total,

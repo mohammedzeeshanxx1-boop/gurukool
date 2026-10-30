@@ -15,7 +15,7 @@ export const dynamic = "force-dynamic";
 export async function GET() {
   try {
     const p = await getPersona();
-    if (p.role === "recruiter") throw new ForbiddenError("Recruiters can't view mentorship bookings.");
+    if (p.role === "recruiter" || p.role === "admin") throw new ForbiddenError("Only students and mentors can view mentorship bookings.");
     await connectDB();
     await ensureSeed();
     const filter = p.role === "student" ? { studentId: p.id } : { mentorId: p.id };

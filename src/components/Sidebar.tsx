@@ -3,27 +3,33 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useState } from "react";
 import PersonaSwitcher from "./PersonaSwitcher";
+import { usePersona } from "./connect";
 
-const NAV = [
-  { href: "/", label: "Dashboard", icon: "▦" },
-  { href: "/learn", label: "Learn", icon: "✦" },
-  { href: "/train", label: "Train", icon: "▤" },
-  { href: "/build", label: "Build", icon: "⌘" },
-  { href: "/connect", label: "Connect", icon: "◎" },
-  { href: "/connect/mentor", label: "Mentor Dashboard", icon: "·", sub: true },
-  { href: "/compete", label: "Compete", icon: "⚑" },
-  { href: "/grow", label: "Grow", icon: "↗" },
-  { href: "/grow/recruiter", label: "Recruiter Dashboard", icon: "·", sub: true },
+type R = "student" | "mentor" | "recruiter" | "admin";
+const NAV: { href: string; label: string; icon: string; sub?: boolean; roles: R[] }[] = [
+  { href: "/", label: "Dashboard", icon: "▦", roles: ["student"] },
+  { href: "/learn", label: "Learn", icon: "✦", roles: ["student"] },
+  { href: "/train", label: "Train", icon: "▤", roles: ["student", "mentor"] },
+  { href: "/build", label: "Build", icon: "⌘", roles: ["student"] },
+  { href: "/connect", label: "Connect", icon: "◎", roles: ["student", "mentor"] },
+  { href: "/connect/mentor", label: "Mentor Dashboard", icon: "·", sub: true, roles: ["mentor"] },
+  { href: "/compete", label: "Compete", icon: "⚑", roles: ["student"] },
+  { href: "/grow", label: "Grow", icon: "↗", roles: ["student"] },
+  { href: "/grow/recruiter", label: "Recruiter Dashboard", icon: "·", sub: true, roles: ["recruiter"] },
+  { href: "/admin", label: "Admin", icon: "⚙", roles: ["admin"] },
 ];
+const PUBLIC = /^\/(welcome|(student|recruiter|expert|admin)\/(login|register))\/?$/;
 const isActive = (path: string, href: string) =>
   href === "/" ? path === "/" : path === href || (path.startsWith(href + "/") && !NAV.some((n) => n.href !== href && n.href.startsWith(href) && path.startsWith(n.href)));
 
 export default function Sidebar() {
   const path = usePathname();
   const [open, setOpen] = useState(false);
+  const { role } = usePersona();
+  if (PUBLIC.test(path)) return null; // sign-in pages render without the app sidebar
   const links = (
     <nav className="flex flex-col gap-1">
-      {NAV.map((n) => {
+      {NAV.filter((n) => role && n.roles.includes(role as R)).map((n) => {
         const active = isActive(path, n.href);
         return (
           <Link

@@ -33,11 +33,11 @@ export async function PATCH(req: Request, ctx: { params: Promise<{ id: string }>
     const { id } = await ctx.params;
     if (!mongoose.isValidObjectId(id)) return notFound("Booking not found");
     const p = await getPersona();
-    if (p.role === "recruiter") throw new ForbiddenError("Recruiters can't change mentorship bookings.");
+    if (p.role === "recruiter" || p.role === "admin") throw new ForbiddenError("Only the student or mentor on this booking can change it.");
     const b = await req.json().catch(() => null);
     const to = String(b?.status ?? "");
     const note = String(b?.note ?? "").trim().slice(0, 300);
-    const allowedFrom = RULES[p.role][to];
+    const allowedFrom = RULES[p.role]?.[to];
     if (!allowedFrom) throw new ForbiddenError(`A ${p.role} can't set a booking to ${to || "that status"}.`);
 
     await connectDB();

@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { connectDB } from "@/lib/db";
-import { Assessment, Roadmap, Student, DEMO_KEY } from "@/models";
+import { Assessment, Roadmap, Student } from "@/models";
+import { requireRole } from "@/lib/persona";
 import { apiError, badRequest } from "@/lib/api";
 import { analyzeSkillGap, isCareerGoal, youtubeSearchUrl } from "@/lib/careers";
 import { chatJSON, isAiConfigured } from "@/lib/ai";
@@ -40,14 +41,15 @@ function validStages(x: unknown): Stage[] | null {
 
 export async function POST(req: Request) {
   try {
+    const KEY = (await requireRole("student")).id;
     const { goal } = await req.json().catch(() => ({}));
     if (!isCareerGoal(goal)) return badRequest("Pick a valid career goal");
     await connectDB();
-    const student = await Student.findOne({ key: DEMO_KEY }).lean();
+    const student = await Student.findOne({ key: KEY }).lean();
     if (!student) return badRequest("Save your student profile first (Dashboard).");
 
     const gap = analyzeSkillGap(student.skills ?? [], goal);
-    const lastAssessment = await Assessment.findOne({ studentKey: DEMO_KEY, careerGoal: goal, submittedAt: { $ne: null } })
+    const lastAssessment = await Assessment.findOne({ studentKey: KEY, careerGoal: goal, submittedAt: { $ne: null } })
       .sort({ submittedAt: -1 })
       .lean<{ score: number; total: number; weakTopics: string[] }>();
     const weak = lastAssessment?.weakTopics ?? [];
@@ -81,7 +83,7 @@ Return JSON: {"stages":[{"topic":string,"description":string (1-2 sentences, con
     if (!stages) stages = rulesRoadmap(goal, gap.missing, weak, gap.existing);
 
     const roadmap = await Roadmap.create({
-      studentKey: DEMO_KEY,
+      studentKey: KEY,
       careerGoal: goal,
       source,
       basedOn: { missingSkills: gap.missing, weakTopics: weak },
@@ -95,8 +97,9 @@ Return JSON: {"stages":[{"topic":string,"description":string (1-2 sentences, con
 
 export async function GET() {
   try {
+    const KEY = (await requireRole("student")).id;
     await connectDB();
-    const roadmap = await Roadmap.findOne({ studentKey: DEMO_KEY }).sort({ createdAt: -1 }).lean();
+    const roadmap = await Roadmap.findOne({ studentKey: KEY }).sort({ createdAt: -1 }).lean();
     return NextResponse.json({ roadmap });
   } catch (e) {
     return apiError(e);

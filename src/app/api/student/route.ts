@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { connectDB } from "@/lib/db";
-import { Student, DEMO_KEY } from "@/models";
+import { Student } from "@/models";
+import { requireRole } from "@/lib/persona";
 import { apiError, badRequest } from "@/lib/api";
 import { isCareerGoal } from "@/lib/careers";
 
@@ -8,8 +9,9 @@ export const dynamic = "force-dynamic";
 
 export async function GET() {
   try {
+    const KEY = (await requireRole("student")).id;
     await connectDB();
-    const student = await Student.findOne({ key: DEMO_KEY }).lean();
+    const student = await Student.findOne({ key: KEY }).lean();
     return NextResponse.json({ student });
   } catch (e) {
     return apiError(e);
@@ -24,6 +26,7 @@ const splitList = (v: unknown) =>
 
 export async function PUT(req: Request) {
   try {
+    const KEY = (await requireRole("student")).id;
     const body = await req.json().catch(() => null);
     if (!body) return badRequest("Invalid JSON body");
     const { name, email, college, branch, semester, careerGoal } = body;
@@ -33,9 +36,9 @@ export async function PUT(req: Request) {
     if (!isCareerGoal(careerGoal)) return badRequest("Pick a valid career goal");
     await connectDB();
     const student = await Student.findOneAndUpdate(
-      { key: DEMO_KEY },
+      { key: KEY },
       {
-        key: DEMO_KEY,
+        key: KEY,
         name: String(name).slice(0, 100),
         email: String(email ?? "").slice(0, 120),
         college: String(college).slice(0, 150),

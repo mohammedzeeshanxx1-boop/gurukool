@@ -2,10 +2,9 @@ import { NextResponse } from "next/server";
 import { connectDB } from "@/lib/db";
 import { ensureSeed } from "@/lib/seed";
 import { Mentor, DOMAINS, SESSION_FORMATS, type MentorT } from "@/models/connect";
-import { apiError, badRequest } from "@/lib/api";
-import { matchTerm, parseMentorInput, publicMentor } from "@/lib/mentors";
-import { demoPersonasEnabled, setPersona } from "@/lib/persona";
-import { validateAvailability } from "@/lib/slots";
+import { apiError } from "@/lib/api";
+import { matchTerm, publicMentor } from "@/lib/mentors";
+import { ForbiddenError } from "@/lib/persona";
 
 export const dynamic = "force-dynamic";
 
@@ -33,21 +32,7 @@ export async function GET(req: Request) {
   }
 }
 
-// POST /api/mentors — create a professional profile; the demo session then acts as that mentor.
-export async function POST(req: Request) {
-  try {
-    const body = await req.json().catch(() => null);
-    if (!body) return badRequest("Invalid JSON body");
-    const { data, error } = parseMentorInput(body);
-    if (error) return badRequest(error);
-    if (body.availability === undefined) data!.availability = [];
-    else if (validateAvailability(body.availability)) return badRequest(validateAvailability(body.availability)!);
-    await connectDB();
-    await ensureSeed();
-    const mentor = await Mentor.create({ ...data, isDemo: false, profileStatus: data!.profileStatus ?? "active" });
-    if (demoPersonasEnabled()) await setPersona({ role: "mentor", id: String(mentor._id) });
-    return NextResponse.json({ mentor: publicMentor(mentor.toObject()) }, { status: 201 });
-  } catch (e) {
-    return apiError(e);
-  }
+// POST — disabled: expert profiles are created at registration (/expert/register) and edited from the Mentor Dashboard.
+export async function POST() {
+  return apiError(new ForbiddenError("Expert profiles are created when you register as an expert."));
 }
