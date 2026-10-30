@@ -68,6 +68,9 @@ async function main() {
   const mine = await stu("GET", "/api/mentor-sessions");
   check("student sees ACCEPTED (persisted)", mine.data.sessions?.some((s) => s.id === bk.data.session?.id && s.status === "ACCEPTED"));
   check("student notified of acceptance", (await stu("GET", "/api/notifications")).data.items?.some((n) => /accepted/i.test(n.title)));
+  check("TRAIN schedule shows the accepted mentorship (student)", (await stu("GET", "/api/train/me")).data.mentorshipSessions?.some((m) => m.id === bk.data.session?.id));
+  check("TRAIN trainer schedule shows it (expert)", (await exp("GET", "/api/train/trainer")).data.mentorshipSessions?.some((m) => m.id === bk.data.session?.id));
+  check("expert profile shows admin-verified", (await stu("GET", `/api/mentors/${mentorId}`)).data.mentor?.verified === true);
   const relog = client();
   await relog("POST", "/api/auth/login", { portal: "student", email: E("student"), password: pw });
   check("booking still there after signing in again", (await relog("GET", "/api/mentor-sessions")).data.sessions?.some((s) => s.id === bk.data.session?.id && s.status === "ACCEPTED"));

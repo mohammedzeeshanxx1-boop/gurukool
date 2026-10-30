@@ -40,7 +40,8 @@ const MentorSchema = new Schema(
     availability: { type: [SlotSchema], default: [] },
     profileStatus: { type: String, enum: ["active", "draft"], default: "active", index: true },
     isDemo: { type: Boolean, default: false },
-    verified: { type: Boolean, default: false, index: true }, // set when an admin approves the expert account
+    verified: { type: Boolean, default: false, index: true },
+    links: { linkedin: { type: String, default: "" }, portfolio: { type: String, default: "" } }, // set when an admin approves the expert account
   },
   { timestamps: true }
 );
@@ -107,5 +108,5 @@ export type MentorT = {
   _id: mongoose.Types.ObjectId; name: string; headline: string; designation: string; organization: string;
   yearsOfExperience: number; bio: string; expertise: string[]; teachingTopics: string[]; domains: string[];
   sessionFormats: string[]; sessionDescription: string; availability: { day: string; start: string; end: string }[];
-  profileStatus: string; isDemo: boolean;
+  profileStatus: string; isDemo: boolean; verified?: boolean; links?: { linkedin?: string; portfolio?: string };
 };

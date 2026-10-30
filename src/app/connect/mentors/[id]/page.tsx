@@ -63,9 +63,16 @@ export default function MentorProfilePage({ params }: { params: Promise<{ id: st
               <p className="text-slate-600">{m.headline}</p>
               <p className="mt-1 text-sm text-slate-500">{m.designation} · {m.organization} · {m.yearsOfExperience} years of experience</p>
             </div>
-            <ProfileBadge isDemo={m.isDemo} />
+            <ProfileBadge isDemo={m.isDemo} verified={m.verified} />
           </div>
-          <div><div className="label">Professional background</div><p className="text-sm text-slate-700">{m.bio || "—"}</p></div>
+          <div><div className="label">Professional background</div><p className="text-sm text-slate-700">{m.bio || "—"}</p>
+            {(m.links?.linkedin || m.links?.portfolio) && (
+              <div className="mt-1 flex gap-3 text-sm">
+                {m.links.linkedin && <a className="text-blue-700 hover:underline" href={m.links.linkedin} target="_blank" rel="noopener noreferrer nofollow">LinkedIn ↗</a>}
+                {m.links.portfolio && <a className="text-blue-700 hover:underline" href={m.links.portfolio} target="_blank" rel="noopener noreferrer nofollow">Portfolio ↗</a>}
+              </div>
+            )}
+          </div>
           <div><div className="label">Technical skills</div>
             <div className="flex flex-wrap gap-1.5">{m.expertise.map((x) => <span key={x} className="chip bg-slate-100 text-slate-700">{x}</span>)}</div></div>
           <div><div className="label">Topics offered</div>

@@ -11,7 +11,8 @@ export function publicMentor(m: MentorT) {
     domains: m.domains, sessionFormats: m.sessionFormats, sessionDescription: m.sessionDescription,
     availability: m.availability.map((a) => ({ day: a.day, start: a.start, end: a.end })),
     profileStatus: m.profileStatus, isDemo: m.isDemo,
-    verified: false, // no verification process exists yet; never show a verified badge
+    verified: Boolean(m.verified), // true only after an admin approves the expert account
+    links: { linkedin: m.links?.linkedin ?? "", portfolio: m.links?.portfolio ?? "" },
   };
 }
 export type PublicMentor = ReturnType<typeof publicMentor>;
@@ -55,6 +56,16 @@ export function parseMentorInput(body: Record<string, unknown>, partial = false)
       const err = validateAvailability(body.availability);
       if (err) throw err;
       data.availability = (body.availability as Availability[]).map((a) => ({ day: a.day, start: a.start, end: a.end }));
+    }
+    if (body.links !== undefined) {
+      const L = body.links as Record<string, unknown>;
+      const clean = (v: unknown) => {
+        const s = String(v ?? "").trim().slice(0, 200);
+        if (!s) return "";
+        try { const u = new URL(/^https?:\/\//i.test(s) ? s : `https://${s}`); if (!/^https?:$/.test(u.protocol)) throw 0; return u.toString(); }
+        catch { throw "LinkedIn/portfolio must be valid URLs"; }
+      };
+      data.links = { linkedin: clean(L?.linkedin), portfolio: clean(L?.portfolio) };
     }
     if (body.profileStatus !== undefined) {
       if (body.profileStatus !== "active" && body.profileStatus !== "draft") throw "Invalid profile status";

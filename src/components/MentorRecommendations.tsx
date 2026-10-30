@@ -70,7 +70,7 @@ export default function MentorRecommendations({ refreshKey }: { refreshKey: stri
                 <div key={m.id} className="flex flex-col rounded-lg border border-slate-200 p-4">
                   <div className="flex items-start justify-between gap-2">
                     <div><div className="font-semibold">{m.name}</div><div className="text-sm text-slate-500">{m.designation} · {m.organization}</div></div>
-                    <ProfileBadge isDemo={m.isDemo} />
+                    <ProfileBadge isDemo={m.isDemo} verified={m.verified} />
                   </div>
                   <div className="mt-2 flex flex-wrap gap-1.5">
                     <span className={`chip ${r.basis === "evidence" ? "bg-violet-100 text-violet-700" : "bg-slate-100 text-slate-600"}`}>

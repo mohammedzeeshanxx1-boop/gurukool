@@ -4,7 +4,7 @@ import { ensureTrainSeed } from "@/lib/train/seed";
 import { fmtIST, lessonIds } from "@/lib/train/core";
 import { apiError } from "@/lib/api";
 import { requireRole } from "@/lib/persona";
-import { Mentor } from "@/models/connect";
+import { Mentor, MentorSession } from "@/models/connect";
 import { TrainingAssignment, TrainingCourse, TrainingEnrollment, TrainingSession, TrainingSubmission, type CourseT } from "@/models/train";
 
 export const dynamic = "force-dynamic";
@@ -29,7 +29,10 @@ export async function GET() {
     const trainers = await Mentor.find({ _id: { $in: [...courses.map((c) => c.trainerId), ...sessions.map((s) => s.trainerId)] } }).select("name").lean<{ _id: unknown; name: string }[]>();
     const tname = new Map(trainers.map((t) => [String(t._id), t.name]));
 
+    const mentorship = await MentorSession.find({ studentId: p.id, status: "ACCEPTED", requestedEndAt: { $gt: new Date() } }).sort({ requestedStartAt: 1 })
+      .lean<{ _id: unknown; mentorId: unknown; mentorName: string; topic: string; requestedStartAt: Date; requestedEndAt: Date; durationMinutes: number }[]>();
     return NextResponse.json({
+      mentorshipSessions: mentorship.map((m) => ({ id: String(m._id), mentorId: String(m.mentorId), mentor: m.mentorName, topic: m.topic, startAt: m.requestedStartAt, endAt: m.requestedEndAt, when: fmtIST(m.requestedStartAt), durationMinutes: m.durationMinutes })),
       enrollments: enrollments.filter((e) => cmap.has(String(e.courseId))).map((e) => {
         const c = cmap.get(String(e.courseId))!;
         const all = lessonIds(c);

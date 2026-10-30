@@ -7,7 +7,7 @@ export type Slot = { day: string; start: string; end: string };
 export type Mentor = {
   id: string; name: string; headline: string; designation: string; organization: string; yearsOfExperience: number;
   bio: string; expertise: string[]; teachingTopics: string[]; domains: string[]; sessionFormats: string[];
-  sessionDescription: string; availability: Slot[]; profileStatus: string; isDemo: boolean; verified: boolean;
+  sessionDescription: string; availability: Slot[]; profileStatus: string; isDemo: boolean; verified: boolean; links?: { linkedin: string; portfolio: string };
 };
 export type UpcomingSlot = { startAt: string; endAt: string; day: string; date: string; label: string; slotMinutes: number };
 export type Booking = {
@@ -44,10 +44,11 @@ export async function switchPersona(role: string, id: string) {
   window.location.reload();
 }
 
-export function ProfileBadge({ isDemo }: { isDemo: boolean }) {
-  return isDemo
-    ? <span className="chip bg-amber-100 text-amber-800" title="Fictional profile created for demonstration">Demo · fictional</span>
-    : <span className="chip bg-slate-100 text-slate-600" title="Self-created profile; identity not verified">Not verified</span>;
+export function ProfileBadge({ isDemo, verified }: { isDemo: boolean; verified?: boolean }) {
+  if (isDemo) return <span className="chip bg-amber-100 text-amber-800" title="Fictional profile created for demonstration">Demo · fictional</span>;
+  return verified
+    ? <span className="chip bg-emerald-100 text-emerald-700" title="Account approved by a GURUKOOL admin">✓ Admin-verified</span>
+    : <span className="chip bg-slate-100 text-slate-600" title="Awaiting admin approval">Not verified</span>;
 }
 
 const STATUS_CLS: Record<string, string> = {
@@ -83,7 +84,7 @@ export function MentorCard({ m, reason, extra }: { m: Mentor; reason?: string[];
           <h3 className="font-semibold text-slate-900">{m.name}</h3>
           <p className="text-sm text-slate-600">{m.headline}</p>
         </div>
-        <ProfileBadge isDemo={m.isDemo} />
+        <ProfileBadge isDemo={m.isDemo} verified={m.verified} />
       </div>
       <p className="mt-2 text-sm text-slate-500">{m.designation} · {m.organization} · {m.yearsOfExperience} yrs experience</p>
       {m.bio && <p className="mt-2 line-clamp-3 text-sm text-slate-600">{m.bio}</p>}

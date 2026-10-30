@@ -59,7 +59,7 @@ type MyFeedback = { assignmentTitle: string; courseId: string; courseTitle: stri
 
 function MyTraining() {
   const { info } = usePersona();
-  const [d, setD] = useState<{ enrollments: MyEnroll[]; upcomingSessions: MySession[]; feedback: MyFeedback[] } | null>(null);
+  const [d, setD] = useState<{ enrollments: MyEnroll[]; upcomingSessions: MySession[]; feedback: MyFeedback[]; mentorshipSessions: { id: string; mentorId: string; mentor: string; topic: string; startAt: string; endAt: string; when: string; durationMinutes: number }[] } | null>(null);
   const [err, setErr] = useState<ApiErr | null>(null);
   useEffect(() => {
     if (info?.persona.role !== "student") return;
@@ -90,8 +90,16 @@ function MyTraining() {
           </div>
           <div className="space-y-6">
             <div className="card space-y-3">
-              <h2 className="h2">Upcoming live classes</h2>
-              {d.upcomingSessions.length === 0 ? <p className="text-sm text-slate-500">No upcoming sessions for your courses.</p> : d.upcomingSessions.map((s) => (
+              <h2 className="h2">Upcoming sessions</h2>
+              {d.mentorshipSessions.map((m) => (
+                <div key={m.id} className="space-y-1 rounded-lg border border-emerald-200 bg-emerald-50/40 p-3">
+                  <div className="flex items-start justify-between gap-2"><b className="text-sm">{m.topic}</b><span className="chip bg-emerald-100 text-emerald-700">1:1 mentorship</span></div>
+                  <p className="text-xs text-slate-500">with <Link className="text-blue-700 hover:underline" href={`/connect/mentors/${m.mentorId}`}>{m.mentor}</Link></p>
+                  <p className="text-sm text-slate-700">{m.when} · {m.durationMinutes} min</p>
+                  <JoinSessionButton startAt={m.startAt} endAt={m.endAt} />
+                </div>
+              ))}
+              {d.upcomingSessions.length === 0 && d.mentorshipSessions.length === 0 ? <p className="text-sm text-slate-500">No upcoming classes or mentorship sessions.</p> : d.upcomingSessions.map((s) => (
                 <div key={s.id} className="space-y-1 rounded-lg border border-slate-200 p-3">
                   <div className="flex items-start justify-between gap-2"><b className="text-sm">{s.title}</b><span className="chip bg-emerald-100 text-emerald-700">{s.status}</span></div>
                   <p className="text-xs text-slate-500">{s.courseTitle} · {s.trainer}{s.isDemo && " · demo session"}</p>
@@ -120,7 +128,7 @@ function MyTraining() {
 
 type TCourse = CourseCard & { enrolledCount: number };
 type TSub = { id: string; assignmentTitle: string; maxMarks: number; courseTitle: string; studentName: string; submissionText: string; repositoryUrl: string; projectUrl: string; submitted: string; late: boolean; status: string; score: number | null; feedback: string };
-type TData = { courses: TCourse[]; students: { courseId: string; courseTitle: string; name: string; engagementPct: number }[]; pendingReviews: number; sessions: { id: string; courseTitle: string; title: string; when: string; started: boolean }[] };
+type TData = { mentorshipSessions: { id: string; student: string; topic: string; when: string }[]; courses: TCourse[]; students: { courseId: string; courseTitle: string; name: string; engagementPct: number }[]; pendingReviews: number; sessions: { id: string; courseTitle: string; title: string; when: string; started: boolean }[] };
 
 function ReviewForm({ s, onDone }: { s: TSub; onDone: () => void }) {
   const [score, setScore] = useState(""), [feedback, setFeedback] = useState("");
@@ -206,6 +214,12 @@ function TrainerDashboard() {
             </section>
             <section className="card space-y-3">
               <h2 className="h2">Weekend live sessions</h2>
+              {d.mentorshipSessions.map((m) => (
+                <div key={m.id} className="rounded-lg border border-emerald-200 bg-emerald-50/40 p-3 text-sm">
+                  <b>{m.topic}</b> <span className="chip bg-emerald-100 text-emerald-700">1:1 mentorship</span>
+                  <p className="text-slate-500">{m.student} · {m.when}</p>
+                </div>
+              ))}
               {d.sessions.length === 0 ? <p className="text-sm text-slate-500">No scheduled sessions. Schedule one from a course page.</p> : d.sessions.map((s) => (
                 <div key={s.id} className="rounded-lg border border-slate-200 p-3 text-sm">
                   <b>{s.title}</b><p className="text-slate-500">{s.courseTitle} · {s.when}</p>

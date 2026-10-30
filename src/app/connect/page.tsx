@@ -5,7 +5,7 @@ import { useRouter, useSearchParams } from "next/navigation";
 import { Alert, ErrorAlert, PageHeader, Spinner, api, toErr, type ApiErr } from "@/components/ui";
 import { MatchBreakdown, type MatchRec } from "@/components/MentorRecommendations";
 import {
-  JoinSessionButton, MentorCard, PersonaGate, ProfileBadge, StatusBadge, usePersona,
+  CONNECT_URL, JoinSessionButton, MentorCard, PersonaGate, ProfileBadge, StatusBadge, usePersona,
   type Booking, type Mentor,
 } from "@/components/connect";
 
@@ -169,7 +169,7 @@ function IndustryNetwork() {
                   {m.name.split(" ").map((w) => w[0]).slice(0, 2).join("")}
                 </div>
                 <div className="min-w-0 flex-1">
-                  <div className="flex flex-wrap items-center gap-2"><span className="font-semibold">{m.name}</span><ProfileBadge isDemo={m.isDemo} /></div>
+                  <div className="flex flex-wrap items-center gap-2"><span className="font-semibold">{m.name}</span><ProfileBadge isDemo={m.isDemo} verified={m.verified} /></div>
                   <p className="text-sm text-slate-600">{m.designation} · {m.organization} · {m.yearsOfExperience} yrs</p>
                   <p className="mt-1 line-clamp-2 text-sm text-slate-500">{m.bio}</p>
                   <div className="mt-2 flex flex-wrap gap-1.5">{m.expertise.map((e) => <span key={e} className="chip bg-slate-100 text-slate-700">{e}</span>)}</div>
@@ -196,6 +196,22 @@ function ConnectInner() {
         title="Connect with Industry. Learn from Experience."
         subtitle="Discover professionals, book mentorship sessions, attend weekend masterclasses, and grow your professional network."
       />
+      <div className="mb-8 grid gap-4 md:grid-cols-2">
+        <div className="card flex flex-col">
+          <h2 className="h2">Connect with Peers</h2>
+          <p className="mt-1 flex-1 text-sm text-slate-500">Study, pair-program and discuss with fellow students on the GURUKOOL collaboration platform.</p>
+          <div className="mt-3">
+            {CONNECT_URL
+              ? <a href={CONNECT_URL} target="_blank" rel="noopener noreferrer" className="btn-primary">Open peer collaboration ↗</a>
+              : <p className="text-sm text-amber-700">Video collaboration is not configured. Please contact the administrator.</p>}
+          </div>
+        </div>
+        <div className="card flex flex-col">
+          <h2 className="h2">Connect with Experts</h2>
+          <p className="mt-1 flex-1 text-sm text-slate-500">Browse admin-verified industry experts below, view their background and availability, and request a weekend mentorship session.</p>
+          <div className="mt-3"><button className="btn-ghost" onClick={() => router.replace("/connect?tab=find", { scroll: false })}>Find an expert ↓</button></div>
+        </div>
+      </div>
       <div role="tablist" className="mb-6 flex gap-1 overflow-x-auto border-b border-slate-200">
         {TABS.map((t) => (
           <button

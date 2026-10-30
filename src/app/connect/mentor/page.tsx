@@ -12,11 +12,11 @@ const DOMAINS = ["Backend Development", "Frontend Development", "Full Stack Deve
 const FORMATS = ["1:1 Mentorship", "Weekend Masterclass", "Mock Interview", "Project Review"];
 const EMPTY = {
   name: "", headline: "", designation: "", organization: "", yearsOfExperience: 1, bio: "",
-  expertise: "", teachingTopics: "", domains: [] as string[], sessionFormats: ["1:1 Mentorship"], sessionDescription: "",
+  expertise: "", teachingTopics: "", domains: [] as string[], sessionFormats: ["1:1 Mentorship"], sessionDescription: "", linkedin: "", portfolio: "",
 };
 type ProfileForm = typeof EMPTY;
 
-function ProfileEditor({ initial, onSave, saveLabel }: { initial: ProfileForm; onSave: (f: ProfileForm) => Promise<void>; saveLabel: string }) {
+function ProfileEditor({ initial, onSave, saveLabel, email }: { initial: ProfileForm; onSave: (f: ProfileForm) => Promise<void>; saveLabel: string; email?: string }) {
   const [f, setF] = useState(initial);
   const [busy, setBusy] = useState(false);
   const [msg, setMsg] = useState<string | null>(null);
@@ -30,6 +30,7 @@ function ProfileEditor({ initial, onSave, saveLabel }: { initial: ProfileForm; o
       e.preventDefault(); setBusy(true); setErr(null); setMsg(null);
       try { await onSave(f); setMsg("Saved."); } catch (x) { setErr(toErr(x)); } finally { setBusy(false); }
     }}>
+      {email && <div><label className="label">Account email</label><input className="input bg-slate-50" value={email} readOnly /></div>}
       <div className="grid gap-3 sm:grid-cols-2">
         <div><label className="label">Name</label><input className="input" value={f.name} onChange={set("name")} required /></div>
         <div><label className="label">Headline</label><input className="input" value={f.headline} onChange={set("headline")} required placeholder="Backend Engineer · Node.js & APIs" /></div>
@@ -49,6 +50,10 @@ function ProfileEditor({ initial, onSave, saveLabel }: { initial: ProfileForm; o
           <button type="button" key={d} onClick={() => toggle("sessionFormats", d)} className={`chip border px-3 py-1 ${f.sessionFormats.includes(d) ? "border-blue-600 bg-blue-600 text-white" : "border-slate-200 bg-white text-slate-600"}`}>{d}</button>
         ))}</div></div>
       <div><label className="label">Session description</label><textarea className="input" rows={2} value={f.sessionDescription} onChange={set("sessionDescription")} /></div>
+      <div className="grid gap-3 sm:grid-cols-2">
+        <div><label className="label">LinkedIn (optional)</label><input className="input" value={f.linkedin} onChange={set("linkedin")} placeholder="linkedin.com/in/you" /></div>
+        <div><label className="label">Portfolio (optional)</label><input className="input" value={f.portfolio} onChange={set("portfolio")} placeholder="https://your-site.dev" /></div>
+      </div>
       <ErrorAlert err={err} />
       <div className="flex items-center gap-3"><button className="btn-primary" disabled={busy}>{busy && <Spinner />} {saveLabel}</button>{msg && <span className="text-sm text-emerald-600">✓ {msg}</span>}</div>
     </form>
@@ -123,7 +128,7 @@ function BookingRow({ b, actions }: { b: Booking; actions?: React.ReactNode }) {
 const toForm = (m: Mentor): ProfileForm => ({
   name: m.name, headline: m.headline, designation: m.designation, organization: m.organization, yearsOfExperience: m.yearsOfExperience,
   bio: m.bio, expertise: m.expertise.join(", "), teachingTopics: m.teachingTopics.join(", "), domains: m.domains,
-  sessionFormats: m.sessionFormats, sessionDescription: m.sessionDescription,
+  sessionFormats: m.sessionFormats, sessionDescription: m.sessionDescription, linkedin: m.links?.linkedin ?? "", portfolio: m.links?.portfolio ?? "",
 });
 
 export default function MentorDashboard() {
@@ -134,6 +139,8 @@ export default function MentorDashboard() {
   const [err, setErr] = useState<ApiErr | null>(null);
   const [busy, setBusy] = useState<string | null>(null);
   const [notice, setNotice] = useState<string | null>(null);
+  const [accountEmail, setAccountEmail] = useState("");
+  useEffect(() => { api<{ user: { email: string } }>("/api/auth/me").then((d) => setAccountEmail(d.user.email)).catch(() => {}); }, []);
 
   const load = useCallback(async () => {
     if (!info || info.persona.role !== "mentor") return;
@@ -193,7 +200,7 @@ export default function MentorDashboard() {
   return (
     <div className="mx-auto max-w-5xl space-y-6">
       <PageHeader title="Mentor Dashboard" subtitle={mentor ? `${mentor.name} · ${mentor.designation}` : "Loading…"}
-        right={mentor && <div className="flex items-center gap-2"><ProfileBadge isDemo={mentor.isDemo} /><Link href={`/connect/mentors/${mentor.id}`} className="btn-ghost">View public profile</Link></div>} />
+        right={mentor && <div className="flex items-center gap-2"><ProfileBadge isDemo={mentor.isDemo} verified={mentor.verified} /><Link href={`/connect/mentors/${mentor.id}`} className="btn-ghost">View public profile</Link></div>} />
       <ApprovalBanner />
       <ErrorAlert err={err} />
       {notice && <Alert kind="success">{notice}</Alert>}
@@ -240,8 +247,8 @@ export default function MentorDashboard() {
           <section className="card space-y-3"><h2 className="h2">Availability Management</h2><AvailabilityEditor mentor={mentor} onSaved={setMentor} /></section>
           <section className="card space-y-3">
             <h2 className="h2">Professional Profile</h2>
-            <ProfileEditor initial={toForm(mentor)} saveLabel="Save profile" onSave={async (f) => {
-              const r = await api<{ mentor: Mentor }>(`/api/mentors/${mentor.id}`, { method: "PATCH", body: JSON.stringify({ ...f, profileStatus: "active" }) });
+            <ProfileEditor initial={toForm(mentor)} email={accountEmail} saveLabel="Save profile" onSave={async (f) => {
+              const r = await api<{ mentor: Mentor }>(`/api/mentors/${mentor.id}`, { method: "PATCH", body: JSON.stringify({ ...f, links: { linkedin: f.linkedin, portfolio: f.portfolio }, profileStatus: "active" }) });
               setMentor(r.mentor);
             }} />
           </section>

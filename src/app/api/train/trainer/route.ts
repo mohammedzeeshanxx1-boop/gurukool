@@ -5,6 +5,7 @@ import { courseSummary, fmtIST, lessonIds } from "@/lib/train/core";
 import { apiError } from "@/lib/api";
 import { requireRole } from "@/lib/persona";
 import { Student } from "@/models";
+import { MentorSession } from "@/models/connect";
 import { TrainingCourse, TrainingEnrollment, TrainingSession, TrainingSubmission, type CourseT } from "@/models/train";
 
 export const dynamic = "force-dynamic";
@@ -25,7 +26,10 @@ export async function GET() {
     const students = await Student.find({ key: { $in: enrollments.map((e) => e.studentId) } }).select("key name").lean<{ key: string; name: string }[]>();
     const sname = new Map(students.map((s) => [s.key, s.name]));
     const cmap = new Map(courses.map((c) => [String(c._id), c]));
+    const mentorship = await MentorSession.find({ mentorId: p.id, status: "ACCEPTED", requestedEndAt: { $gt: new Date() } }).sort({ requestedStartAt: 1 })
+      .lean<{ _id: unknown; studentName: string; topic: string; requestedStartAt: Date }[]>();
     return NextResponse.json({
+      mentorshipSessions: mentorship.map((m) => ({ id: String(m._id), student: m.studentName, topic: m.topic, when: fmtIST(m.requestedStartAt) })),
       courses: courses.map((c) => ({ ...courseSummary(c), enrolledCount: enrollments.filter((e) => String(e.courseId) === String(c._id)).length })),
       students: enrollments.map((e) => {
         const c = cmap.get(String(e.courseId))!;
