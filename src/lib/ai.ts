@@ -8,27 +8,56 @@ export class AiNotConfiguredError extends Error {
   }
 }
 
+// Tolerate common .env mistakes: surrounding quotes, spaces, trailing slashes.
+const env = (k: string) => (process.env[k] ?? "").trim().replace(/^["']|["']$/g, "").trim();
+const cfg = () => ({
+  key: env("AI_API_KEY"),
+  model: env("AI_MODEL"),
+  base: env("AI_BASE_URL").replace(/\/+$/, ""),
+});
+
 export function isAiConfigured() {
-  return Boolean(process.env.AI_API_KEY && process.env.AI_MODEL && process.env.AI_BASE_URL);
+  const c = cfg();
+  return Boolean(c.key && c.model && c.base);
+}
+
+export function aiModel() {
+  return cfg().model;
 }
 
 export type ChatMessage = { role: "system" | "user" | "assistant"; content: string };
 
 export async function chat(messages: ChatMessage[], opts: { json?: boolean; maxTokens?: number } = {}) {
   if (!isAiConfigured()) throw new AiNotConfiguredError();
-  const base = process.env.AI_BASE_URL!.replace(/\/+$/, "");
-  const res = await fetch(`${base}/chat/completions`, {
+  const { key, model, base } = cfg();
+  if (!/^https?:\/\//.test(base)) throw new Error(`AI_BASE_URL must start with https:// (got "${base}")`);
+  const url = `${base}/chat/completions`;
+  let res: Response;
+  try {
+    res = await fetch(url, {
     method: "POST",
-    headers: { "Content-Type": "application/json", Authorization: `Bearer ${process.env.AI_API_KEY}` },
+    headers: { "Content-Type": "application/json", Authorization: `Bearer ${key}` },
     body: JSON.stringify({
-      model: process.env.AI_MODEL,
+      model,
       messages,
       temperature: 0.4,
       max_tokens: opts.maxTokens ?? 1500,
       ...(opts.json ? { response_format: { type: "json_object" } } : {}),
     }),
     signal: AbortSignal.timeout(60000),
-  });
+    });
+  } catch (e) {
+    // Surface the real network cause (DNS, TLS, timeout, connection reset) instead of "fetch failed".
+    const err = e as Error & { cause?: { code?: string; message?: string } };
+    const cause = err.cause?.code || err.cause?.message || err.name;
+    const hint =
+      cause === "ENOTFOUND" ? "host not found: check AI_BASE_URL spelling or your internet/DNS"
+      : /TIMEOUT|ETIMEDOUT|TimeoutError/i.test(String(cause)) ? "timed out: your network may be blocking this host (try a phone hotspot)"
+      : /ECONNRESET|ECONNREFUSED/.test(String(cause)) ? "connection blocked/reset: firewall or college network (try a phone hotspot)"
+      : /CERT|SSL|TLS/i.test(String(cause)) ? "TLS/certificate problem: a network proxy may be intercepting HTTPS"
+      : "network error";
+    throw new Error(`Cannot reach ${new URL(url).host} (${cause}): ${hint}`);
+  }
   if (!res.ok) {
     const text = await res.text().catch(() => "");
     throw new Error(`AI API error ${res.status}: ${text.slice(0, 300)}`);
