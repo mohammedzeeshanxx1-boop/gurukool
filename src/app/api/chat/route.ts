@@ -23,7 +23,8 @@ export async function POST(req: Request) {
           .map((m: ChatMessage) => ({ role: m.role, content: m.content.slice(0, 4000) }))
       : [];
 
-    const context = `Current editor code (JavaScript):\n\`\`\`js\n${code || "// (empty)"}\n\`\`\`\n${
+    const language = String(body?.language ?? "JavaScript").replace(/[^\w+# ]/g, "").slice(0, 20) || "JavaScript";
+    const context = `Current editor code (${language}):\n\`\`\`\n${code || "// (empty)"}\n\`\`\`\n${
       output ? `Latest console output:\n\`\`\`\n${output}\n\`\`\`\n` : ""
     }\nStudent question: ${question.slice(0, 2000)}`;
 
