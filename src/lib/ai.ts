@@ -32,6 +32,10 @@ export async function chat(messages: ChatMessage[], opts: { json?: boolean; maxT
   const { key, model, base } = cfg();
   if (!/^https?:\/\//.test(base)) throw new Error(`AI_BASE_URL must start with https:// (got "${base}")`);
   const url = `${base}/chat/completions`;
+  // Reasoning models (gpt-oss, qwen3, o-series, deepseek-r1) spend tokens "thinking" before answering,
+  // so give them extra budget and keep reasoning light for fast demo responses.
+  const reasoning = /gpt-oss|qwen3|deepseek-r1|(^|\/)o\d/i.test(model);
+  const maxTokens = (opts.maxTokens ?? 1500) + (reasoning ? 2500 : 0);
   let res: Response;
   try {
     res = await fetch(url, {
@@ -41,7 +45,8 @@ export async function chat(messages: ChatMessage[], opts: { json?: boolean; maxT
       model,
       messages,
       temperature: 0.4,
-      max_tokens: opts.maxTokens ?? 1500,
+      max_tokens: maxTokens,
+      ...(reasoning && /gpt-oss/i.test(model) ? { reasoning_effort: "low" } : {}),
       ...(opts.json ? { response_format: { type: "json_object" } } : {}),
     }),
     signal: AbortSignal.timeout(60000),
@@ -63,8 +68,10 @@ export async function chat(messages: ChatMessage[], opts: { json?: boolean; maxT
     throw new Error(`AI API error ${res.status}: ${text.slice(0, 300)}`);
   }
   const data = await res.json();
-  const content: string | undefined = data?.choices?.[0]?.message?.content;
-  if (!content) throw new Error("AI API returned an empty response.");
+  const raw: string | undefined = data?.choices?.[0]?.message?.content;
+  // Some reasoning models inline their thinking in <think> tags; never show it to students.
+  const content = raw?.replace(/<think>[\s\S]*?<\/think>/gi, "").trim();
+  if (!content) throw new Error("AI API returned an empty response (try a non-reasoning model or retry).");
   return content;
 }
 
