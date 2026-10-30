@@ -95,6 +95,32 @@ It exercises discovery filters, availability validation, booking validation, dup
 6. Persona → back to the student → My Sessions shows **ACCEPTED** → **Join Mentorship Session**.
 7. Grow → turn on **Allow recruiters to discover my profile**. Persona → a demo recruiter → Recruiter Dashboard → **Express Interest**. Persona → student → Grow → Accept/Decline.
 
+## GURUKOOL TRAIN: Industry Training & LMS
+
+**Skill gap → training recommendation → enrollment → lessons → practical assignment → trainer evaluation → progress.**
+
+| View | Where |
+|---|---|
+| Training Catalog (search, domain, difficulty; enroll) | `/train` |
+| My Training (progress, upcoming weekend live classes, trainer feedback) | `/train?tab=my` |
+| Trainer Dashboard (review queue, marks + feedback, enrolled students, sessions, create course) | `/train?tab=trainer` |
+| Course page (modules, lessons, objectives, mark complete, assignments, live classes; trainer tools to add modules, lessons, assignments, sessions and publish) | `/train/courses/[id]` |
+| Recommended Training on LEARN | `/learn` |
+| Opt-in training on the GROW resume (per course) | `/grow` |
+
+- **Trainers are existing mentor profiles.** No new identities; trainer actions use the same signed demo personas as CONNECT and are checked server-side (only a course's trainer can edit it, add content, schedule its sessions or review its submissions).
+- **Sample course:** *Backend Development Bootcamp* (5 modules, 10 lessons, 5 assignments, one upcoming weekend live class), labelled **Demo content**; its trainer is the fictional Demo Backend Mentor.
+- **Progress is reported honestly:** lesson completion is shown as *engagement*; demonstrated proficiency is the average of **trainer-reviewed** assignment marks. Nothing is written back into LEARN's assessments or scoring.
+- **Enrollment and submissions:** a unique index (studentId, courseId) prevents duplicate enrollment. A student can resubmit until the submission is reviewed, after which it is locked. Links are validated and `javascript:` URLs are rejected.
+- **Live classes:** Saturday/Sunday only, Asia/Kolkata, at least 1 h ahead, 30–240 min, no overlaps per trainer. "Join" opens `NEXT_PUBLIC_CONNECT_URL`; no private meeting URLs are created.
+- **GURUKOOL Training Recommender** (`src/lib/training-matching/`, deterministic, no AI): `score = 0.5·weakSkills + 0.3·roadmap + 0.2·careerGoal` (each 0–1), reading existing skill-gap, assessment and roadmap outputs. No assessment → labelled *interest-based*.
+- **BUILD:** BUILD has no challenge catalogue to link to, so each assignment links to the existing BUILD editor for practice (no second coding environment).
+- Models: `TrainingCourse` (embedded modules/lessons), `TrainingEnrollment`, `TrainingAssignment`, `TrainingSubmission`, `TrainingSession` in `src/models/train.ts`.
+
+Test against a running server with MongoDB: `npm run test:train` (≈45 checks; uses its own test trainer + test course and leaves the demo Bootcamp untouched).
+
+**TRAIN demo:** Learn (analyze → assessment → roadmap) → **Recommended Training** → *View & enroll* → Bootcamp → **Enroll** → Module 1 lesson → **Mark lesson completed** → assignment → submit text or GitHub link → sidebar persona **Demo Backend Mentor** → TRAIN → Trainer Dashboard → enter marks + feedback → persona back to student → My Training shows progress, score and feedback, plus the upcoming weekend live class → **Join Mentorship Session**.
+
 ## Security notes
 
 - AI key and DB URI are only read in server route handlers (`src/lib/ai.ts` is `server-only`).
@@ -104,13 +130,15 @@ It exercises discovery filters, availability validation, booking validation, dup
 ## Structure
 
 ```
-src/app/            pages: / learn build connect (+ mentor, mentors/[id]) compete grow (+ recruiter)
+src/app/            pages: / learn train (+ courses/[id]) build connect (+ mentor, mentors/[id]) compete grow (+ recruiter)
 src/app/api/        student (+ visibility), status, chat, learn/*, compete/hackathons, persona,
                     mentors (+ [id], recommendations), mentor-sessions (+ [id]),
-                    recruiters/students, recruiter-interests (+ [id])
+                    recruiters/students, recruiter-interests (+ [id]),
+                    train/{courses(+[id], content, enroll), progress, submissions(+[id]), sessions/[id], enrollments/[id], me, trainer, recommendations}
 src/lib/            db, ai, careers, questionBank, persona, slots, mentors, recommend (adapter), sessions, seed
 src/lib/mentor-matching/  GURUKOOL Mentor Match Engine (index.ts scoring, match.ts term matching)
-src/models/         index.ts (Student, Assessment, Roadmap), connect.ts (Mentor, MentorSession, Recruiter, RecruiterInterest)
+src/lib/training-matching/ GURUKOOL Training Recommender;  src/lib/train/ core helpers + demo seed
+src/models/         index.ts (Student, Assessment, Roadmap), connect.ts (Mentor, MentorSession, Recruiter, RecruiterInterest), train.ts (Training*)
 src/components/     Sidebar, PersonaSwitcher, connect, MentorRecommendations, RecruiterPanel, ui, sandboxRunner
-scripts/            e2e-connect.mjs (end-to-end CONNECT test against a running server)
+scripts/            e2e-connect.mjs, e2e-train.mjs (end-to-end tests against a running server)
 ```

@@ -7,6 +7,7 @@ import PersonaSwitcher from "./PersonaSwitcher";
 const NAV = [
   { href: "/", label: "Dashboard", icon: "▦" },
   { href: "/learn", label: "Learn", icon: "✦" },
+  { href: "/train", label: "Train", icon: "▤" },
   { href: "/build", label: "Build", icon: "⌘" },
   { href: "/connect", label: "Connect", icon: "◎" },
   { href: "/connect/mentor", label: "Mentor Dashboard", icon: "·", sub: true },

@@ -1,7 +1,7 @@
 "use client";
 import { useEffect, useState } from "react";
 import Link from "next/link";
-import { PageHeader, useStudent } from "@/components/ui";
+import { PageHeader, api, useStudent } from "@/components/ui";
 import RecruiterPanel from "@/components/RecruiterPanel";
 
 type R = { name: string; email: string; github: string; linkedin: string; education: string; skills: string; projects: string };
@@ -10,6 +10,13 @@ const EMPTY: R = { name: "", email: "", github: "", linkedin: "", education: "",
 export default function GrowPage() {
   const { student } = useStudent();
   const [r, setR] = useState<R>(EMPTY);
+  // Training programs the student chose to show on their resume (GURUKOOL TRAIN, opt-in per course).
+  const [training, setTraining] = useState<{ title: string; trainer: string; engagementPct: number; demonstratedPct: number | null; completed: boolean }[]>([]);
+  useEffect(() => {
+    api<{ enrollments: { title: string; trainer: string; engagementPct: number; demonstratedPct: number | null; completed: boolean; showInPortfolio: boolean }[] }>("/api/train/me")
+      .then((d) => setTraining(d.enrollments.filter((e) => e.showInPortfolio)))
+      .catch(() => setTraining([]));
+  }, []);
   useEffect(() => {
     if (!student) return;
     setR((cur) => ({
@@ -53,6 +60,9 @@ export default function GrowPage() {
             ["EDUCATION", r.education && <p>{r.education}</p>],
             ["TECHNICAL SKILLS", r.skills && <p>{r.skills}</p>],
             ["PROJECTS", projects.length > 0 && <ul className="list-disc pl-5">{projects.map((p, i) => <li key={i}>{p}</li>)}</ul>],
+            ["TRAINING", training.length > 0 && <ul className="list-disc pl-5">{training.map((t) => (
+              <li key={t.title}>{t.title}, GURUKOOL TRAIN (trainer: {t.trainer}): {t.completed ? "completed" : `${t.engagementPct}% of lessons completed`}{t.demonstratedPct !== null ? `; trainer-evaluated assignments ${t.demonstratedPct}%` : ""}</li>
+            ))}</ul>],
           ].map(([h, body]) => body && (
             <section key={h as string} className="mt-4">
               <h2 className="border-b border-black text-sm font-bold tracking-wider">{h}</h2>
