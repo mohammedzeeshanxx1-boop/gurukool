@@ -1,6 +1,8 @@
 "use client";
 import { useEffect, useState } from "react";
+import Link from "next/link";
 import { PageHeader, useStudent } from "@/components/ui";
+import RecruiterPanel from "@/components/RecruiterPanel";
 
 type R = { name: string; email: string; github: string; linkedin: string; education: string; skills: string; projects: string };
 const EMPTY: R = { name: "", email: "", github: "", linkedin: "", education: "", skills: "", projects: "" };
@@ -25,7 +27,7 @@ export default function GrowPage() {
   return (
     <div className="mx-auto max-w-6xl">
       <div className="no-print">
-        <PageHeader title="Grow" subtitle="Build an ATS-friendly resume, pre-filled from your profile." right={<button className="btn-primary" onClick={() => window.print()}>⤓ Export PDF</button>} />
+        <PageHeader title="Grow" subtitle="Build an ATS-friendly resume, pre-filled from your profile." right={<div className="flex gap-2"><Link href="/grow/recruiter" className="btn-ghost">Recruiter Dashboard</Link><button className="btn-primary" onClick={() => window.print()}>⤓ Export PDF</button></div>} />
       </div>
       <div className="grid gap-6 lg:grid-cols-2">
         <div className="card no-print space-y-3">
@@ -59,6 +61,7 @@ export default function GrowPage() {
           ))}
         </div>
       </div>
+      <RecruiterPanel resume={{ github: r.github, linkedin: r.linkedin, projects: r.projects }} />
     </div>
   );
 }

@@ -1,0 +1,89 @@
+import "server-only";
+import { DOMAINS, SESSION_FORMATS, type MentorT } from "@/models/connect";
+import { cleanList } from "./api";
+import { validateAvailability, type Availability } from "./slots";
+
+export function publicMentor(m: MentorT) {
+  return {
+    id: String(m._id),
+    name: m.name, headline: m.headline, designation: m.designation, organization: m.organization,
+    yearsOfExperience: m.yearsOfExperience, bio: m.bio, expertise: m.expertise, teachingTopics: m.teachingTopics,
+    domains: m.domains, sessionFormats: m.sessionFormats, sessionDescription: m.sessionDescription,
+    availability: m.availability.map((a) => ({ day: a.day, start: a.start, end: a.end })),
+    profileStatus: m.profileStatus, isDemo: m.isDemo,
+    verified: false, // no verification process exists yet; never show a verified badge
+  };
+}
+export type PublicMentor = ReturnType<typeof publicMentor>;
+
+/** Validate a create/update payload. `partial` allows omitting fields (PATCH). */
+export function parseMentorInput(body: Record<string, unknown>, partial = false): { data?: Record<string, unknown>; error?: string } {
+  const data: Record<string, unknown> = {};
+  const str = (k: string, max: number, required: boolean) => {
+    if (body[k] === undefined) { if (required && !partial) throw `${k} is required`; return; }
+    const v = String(body[k]).trim();
+    if (required && !v) throw `${k} is required`;
+    data[k] = v.slice(0, max);
+  };
+  try {
+    str("name", 100, true); str("headline", 160, true); str("designation", 100, true); str("organization", 120, true);
+    str("bio", 1500, false); str("sessionDescription", 1000, false);
+    if (body.yearsOfExperience !== undefined || !partial) {
+      const y = Number(body.yearsOfExperience);
+      if (!Number.isFinite(y) || y < 0 || y > 50) throw "Years of experience must be 0–50";
+      data.yearsOfExperience = Math.round(y);
+    }
+    if (body.expertise !== undefined || !partial) {
+      data.expertise = cleanList(body.expertise);
+      if (!(data.expertise as string[]).length) throw "Add at least one area of expertise";
+    }
+    if (body.teachingTopics !== undefined || !partial) {
+      data.teachingTopics = cleanList(body.teachingTopics);
+      if (!(data.teachingTopics as string[]).length) throw "Add at least one teaching topic";
+    }
+    if (body.domains !== undefined) {
+      const d = cleanList(body.domains);
+      if (d.some((x) => !(DOMAINS as readonly string[]).includes(x))) throw "Unknown domain";
+      data.domains = d;
+    }
+    if (body.sessionFormats !== undefined) {
+      const f = cleanList(body.sessionFormats);
+      if (!f.length || f.some((x) => !(SESSION_FORMATS as readonly string[]).includes(x))) throw "Pick valid session formats";
+      data.sessionFormats = f;
+    }
+    if (body.availability !== undefined) {
+      const err = validateAvailability(body.availability);
+      if (err) throw err;
+      data.availability = (body.availability as Availability[]).map((a) => ({ day: a.day, start: a.start, end: a.end }));
+    }
+    if (body.profileStatus !== undefined) {
+      if (body.profileStatus !== "active" && body.profileStatus !== "draft") throw "Invalid profile status";
+      data.profileStatus = body.profileStatus;
+    }
+  } catch (e) {
+    return { error: String(e) };
+  }
+  return { data };
+}
+
+// Loose, explainable text matching used by filters and recommendations.
+const SYNONYMS: Record<string, string[]> = {
+  "node.js": ["node", "nodejs", "express", "backend"], "rest apis": ["api", "apis", "rest"],
+  "data structures & algorithms": ["dsa", "algorithms", "data structures", "interview"],
+  "machine learning": ["ml", "ai"], "deep learning": ["neural", "pytorch"], "deployment & cloud": ["cloud", "docker", "deploy"],
+  "authentication & security": ["security", "auth", "jwt"], react: ["frontend", "reactjs"], sql: ["database", "postgres", "mysql"],
+  mongodb: ["mongo", "database", "nosql"], "system design": ["architecture", "scalability"],
+};
+const norm = (s: string) => s.toLowerCase().replace(/\s+/g, " ").trim();
+
+/** Does `target` (e.g. "Node.js Fundamentals") relate to any mentor term? Returns the matching mentor term. */
+export function matchTerm(target: string, mentorTerms: string[]): string | null {
+  const t = norm(target);
+  const hits = (keys: string[]) =>
+    mentorTerms.find((term) => {
+      const m = norm(term);
+      return m.length >= 2 && keys.some((k) => k.length >= 2 && (m === k || (k.length >= 3 && m.includes(k)) || (m.length >= 3 && k.includes(m))));
+    }) ?? null;
+  // Direct matches beat synonym matches (e.g. "Node.js Fundamentals" → "Node.js", not "Express.js").
+  return hits([t]) ?? hits(Object.entries(SYNONYMS).filter(([k]) => t.includes(k)).flatMap(([, v]) => v));
+}

@@ -1,0 +1,46 @@
+import { NextResponse } from "next/server";
+import { connectDB } from "@/lib/db";
+import { ensureSeed } from "@/lib/seed";
+import { Mentor, type MentorT } from "@/models/connect";
+import { Assessment, Roadmap, Student } from "@/models";
+import { apiError } from "@/lib/api";
+import { getPersona } from "@/lib/persona";
+import { analyzeSkillGap, isCareerGoal } from "@/lib/careers";
+import { recommendMentors, WEIGHTS } from "@/lib/recommend";
+
+export const dynamic = "force-dynamic";
+
+// GET /api/mentors/recommendations?limit=3 — explainable matches for the current student's LEARN data.
+export async function GET(req: Request) {
+  try {
+    const p = await getPersona();
+    if (p.role !== "student") return NextResponse.json({ recommendations: [], reason: "Recommendations are shown for the student persona." });
+    const limit = Math.min(Math.max(Number(new URL(req.url).searchParams.get("limit")) || 3, 1), 6);
+    await connectDB();
+    await ensureSeed();
+    const student = await Student.findOne({ key: p.id }).lean<{ skills: string[]; careerGoal: string; interests: string[] }>();
+    if (!student) return NextResponse.json({ recommendations: [], reason: "Save your student profile to get mentor recommendations." });
+
+    const goal = student.careerGoal;
+    const gap = isCareerGoal(goal) ? analyzeSkillGap(student.skills ?? [], goal) : null;
+    const [assessment, roadmap] = await Promise.all([
+      Assessment.findOne({ studentKey: p.id, submittedAt: { $ne: null } }).sort({ submittedAt: -1 }).lean<{ weakTopics: string[] }>(),
+      Roadmap.findOne({ studentKey: p.id }).sort({ createdAt: -1 }).lean<{ stages: { topic: string; completed: boolean }[] }>(),
+    ]);
+    const ctx = {
+      careerGoal: goal,
+      weakTopics: assessment?.weakTopics ?? [],
+      roadmapTopics: (roadmap?.stages ?? []).filter((s) => !s.completed).map((s) => s.topic),
+      missingSkills: gap?.missing ?? [],
+      interests: student.interests ?? [],
+    };
+    const mentors = (await Mentor.find({ profileStatus: "active" }).lean()) as unknown as MentorT[];
+    return NextResponse.json({
+      recommendations: recommendMentors(mentors, ctx, limit),
+      basedOn: ctx,
+      method: `Rule-based scoring: weak quiz topic +${WEIGHTS.weakTopic}, roadmap stage +${WEIGHTS.roadmap}, missing skill +${WEIGHTS.missingSkill}, career-goal domain +${WEIGHTS.careerGoal}, interest +${WEIGHTS.interest}.`,
+    });
+  } catch (e) {
+    return apiError(e);
+  }
+}

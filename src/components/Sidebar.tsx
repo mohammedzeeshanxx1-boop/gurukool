@@ -2,15 +2,20 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useState } from "react";
+import PersonaSwitcher from "./PersonaSwitcher";
 
 const NAV = [
   { href: "/", label: "Dashboard", icon: "▦" },
   { href: "/learn", label: "Learn", icon: "✦" },
   { href: "/build", label: "Build", icon: "⌘" },
   { href: "/connect", label: "Connect", icon: "◎" },
+  { href: "/connect/mentor", label: "Mentor Dashboard", icon: "·", sub: true },
   { href: "/compete", label: "Compete", icon: "⚑" },
   { href: "/grow", label: "Grow", icon: "↗" },
+  { href: "/grow/recruiter", label: "Recruiter Dashboard", icon: "·", sub: true },
 ];
+const isActive = (path: string, href: string) =>
+  href === "/" ? path === "/" : path === href || (path.startsWith(href + "/") && !NAV.some((n) => n.href !== href && n.href.startsWith(href) && path.startsWith(n.href)));
 
 export default function Sidebar() {
   const path = usePathname();
@@ -18,13 +23,13 @@ export default function Sidebar() {
   const links = (
     <nav className="flex flex-col gap-1">
       {NAV.map((n) => {
-        const active = n.href === "/" ? path === "/" : path.startsWith(n.href);
+        const active = isActive(path, n.href);
         return (
           <Link
             key={n.href}
             href={n.href}
             onClick={() => setOpen(false)}
-            className={`flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium ${
+            className={`flex items-center gap-3 rounded-lg px-3 ${n.sub ? "ml-4 py-1.5 text-xs" : "py-2 text-sm"} font-medium ${
               active ? "bg-blue-50 text-blue-700" : "text-slate-600 hover:bg-slate-100"
             }`}
           >
@@ -47,10 +52,11 @@ export default function Sidebar() {
         <span className="font-extrabold text-blue-700">GURUKOOL</span>
         <button className="btn-ghost px-3 py-1" onClick={() => setOpen(!open)} aria-label="Toggle menu">☰</button>
       </header>
-      {open && <div className="no-print border-b border-slate-200 bg-white p-3 md:hidden">{links}</div>}
-      <aside className="no-print sticky top-0 hidden h-screen w-60 shrink-0 border-r border-slate-200 bg-white p-4 md:block">
+      {open && <div className="no-print border-b border-slate-200 bg-white p-3 md:hidden">{links}<PersonaSwitcher /></div>}
+      <aside className="no-print sticky top-0 hidden h-screen w-60 overflow-y-auto shrink-0 border-r border-slate-200 bg-white p-4 md:block">
         {brand}
         {links}
+        <PersonaSwitcher />
       </aside>
     </>
   );

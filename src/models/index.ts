@@ -14,6 +14,16 @@ const StudentSchema = new Schema(
     skills: { type: [String], default: [] },
     careerGoal: { type: String, required: true },
     interests: { type: [String], default: [] },
+    // CONNECT 2.0 extensions — private by default; recruiters only see opted-in students.
+    recruiterDiscoverable: { type: Boolean, default: false, index: true },
+    portfolioLinks: {
+      github: { type: String, default: "" },
+      linkedin: { type: String, default: "" },
+      portfolio: { type: String, default: "" },
+    },
+    projects: { type: [String], default: [] },
+    mentorshipInterests: { type: [String], default: [] },
+    isDemo: { type: Boolean, default: false }, // seeded fictional students for recruiter demo
   },
   { timestamps: true }
 );
