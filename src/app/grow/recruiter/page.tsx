@@ -3,10 +3,11 @@ import { useCallback, useEffect, useState } from "react";
 import { Alert, ErrorAlert, PageHeader, Spinner, api, toErr, type ApiErr } from "@/components/ui";
 import { PersonaGate, StatusBadge, usePersona } from "@/components/connect";
 import { CAREER_GOALS } from "@/lib/careers";
+import ApprovalBanner from "@/components/ApprovalBanner";
 
 type Student = {
   id: string; name: string; college: string; branch: string; semester: number; careerGoal: string; skills: string[];
-  projects: string[]; links: { github: string; linkedin: string; portfolio: string }; isDemo: boolean; myRequestStatus: string | null;
+  projects: string[]; links: { github: string; linkedin: string; portfolio: string }; isDemo: boolean; myRequestStatus: string | null; shortlisted: boolean;
 };
 type Sent = { id: string; studentName: string; type: string; opportunityTitle: string; message: string; status: string };
 
@@ -44,6 +45,11 @@ export default function RecruiterDashboard() {
   const [sent, setSent] = useState<Sent[] | null>(null);
   const [err, setErr] = useState<ApiErr | null>(null);
   const [open, setOpen] = useState<string | null>(null);
+  const [onlyShort, setOnlyShort] = useState(false);
+  async function toggleShort(s: Student) {
+    try { await api("/api/recruiters/shortlist", { method: "POST", body: JSON.stringify({ studentId: s.id, shortlisted: !s.shortlisted }) }); load(); }
+    catch (e) { setErr(toErr(e)); }
+  }
 
   const load = useCallback(async () => {
     const qs = new URLSearchParams(Object.entries({ skill, goal }).filter(([, v]) => v));
@@ -69,20 +75,22 @@ export default function RecruiterDashboard() {
   return (
     <div className="mx-auto max-w-6xl space-y-6">
       <PageHeader title="Recruiter Dashboard" subtitle="Discover students who have opted in to recruiter visibility." />
-      <Alert kind="warn">Recruiter accounts here are <b>demo personas</b> (fictional companies). No real job openings are listed, and expressing interest is not an offer.</Alert>
+      <ApprovalBanner />
+      <p className="text-xs text-slate-500">Only students who opted in to recruiter discovery are shown. Expressing interest is not a job offer.</p>
       <PersonaGate need="recruiter" info={info}>
         <div className="card grid gap-3 sm:grid-cols-3">
           <input className="input sm:col-span-2" placeholder="Search by skill (e.g. React, Python, Node.js)…" value={skill} onChange={(e) => setSkill(e.target.value)} aria-label="Search by skill" />
           <select className="input" value={goal} onChange={(e) => setGoal(e.target.value)} aria-label="Career goal">
             <option value="">All career goals</option>{CAREER_GOALS.map((g) => <option key={g}>{g}</option>)}
           </select>
+          <label className="flex items-center gap-2 text-sm text-slate-600"><input type="checkbox" checked={onlyShort} onChange={(e) => setOnlyShort(e.target.checked)} /> Shortlisted only</label>
         </div>
         <ErrorAlert err={err} />
         <div className="grid gap-6 lg:grid-cols-3">
           <div className="space-y-4 lg:col-span-2">
             {!students ? <div className="text-sm text-slate-500"><Spinner /> Loading students…</div>
               : students.length === 0 ? <Alert kind="info">No opted-in students match. Students appear here only after turning on recruiter discovery in GROW.</Alert>
-              : students.map((s) => (
+              : students.filter((s) => !onlyShort || s.shortlisted).map((s) => (
                 <div key={s.id} className="card">
                   <div className="flex flex-wrap items-start justify-between gap-2">
                     <div>
@@ -91,6 +99,7 @@ export default function RecruiterDashboard() {
                       <p className="text-sm text-slate-600">Goal: <b>{s.careerGoal}</b></p>
                     </div>
                     <div className="flex items-center gap-2">
+                      <button className={`chip border px-2.5 py-1 ${s.shortlisted ? "border-amber-400 bg-amber-50 text-amber-800" : "border-slate-200 text-slate-600"}`} onClick={() => toggleShort(s)}>{s.shortlisted ? "★ Shortlisted" : "☆ Shortlist"}</button>
                       {s.isDemo && <span className="chip bg-amber-100 text-amber-800">Demo student</span>}
                       {s.myRequestStatus && <StatusBadge status={s.myRequestStatus} />}
                     </div>

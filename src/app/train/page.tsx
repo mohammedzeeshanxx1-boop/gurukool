@@ -255,12 +255,14 @@ function TrainerDashboard() {
 function TrainInner() {
   const sp = useSearchParams();
   const router = useRouter();
-  const tab = (TABS.find((t) => t.id === sp.get("tab"))?.id ?? "catalog") as (typeof TABS)[number]["id"];
+  const { role } = usePersona();
+  const tabs = TABS.filter((t) => (t.id === "trainer" ? role === "mentor" : t.id === "my" ? role === "student" : true));
+  const tab = (tabs.find((t) => t.id === sp.get("tab"))?.id ?? "catalog") as (typeof TABS)[number]["id"];
   return (
     <div className="mx-auto max-w-6xl">
       <PageHeader title="GURUKOOL TRAIN" subtitle="Structured learning. Industry-led training. Measurable progress." />
       <div role="tablist" className="mb-6 flex gap-1 overflow-x-auto border-b border-slate-200">
-        {TABS.map((t) => (
+        {tabs.map((t) => (
           <button key={t.id} role="tab" aria-selected={tab === t.id} onClick={() => router.replace(`/train?tab=${t.id}`, { scroll: false })}
             className={`whitespace-nowrap border-b-2 px-4 py-2 text-sm font-medium ${tab === t.id ? "border-blue-600 text-blue-700" : "border-transparent text-slate-500 hover:text-slate-800"}`}>{t.label}</button>
         ))}

@@ -5,6 +5,7 @@ import { Mentor, DOMAINS, SESSION_FORMATS, type MentorT } from "@/models/connect
 import { apiError } from "@/lib/api";
 import { matchTerm, publicMentor } from "@/lib/mentors";
 import { ForbiddenError } from "@/lib/persona";
+import { discoverableMentor } from "@/lib/notify";
 
 export const dynamic = "force-dynamic";
 
@@ -19,7 +20,7 @@ export async function GET(req: Request) {
     const day = sp.get("day") ?? "";
     const format = sp.get("format") ?? "";
 
-    const filter: Record<string, unknown> = { profileStatus: "active" };
+    const filter: Record<string, unknown> = { profileStatus: "active", ...discoverableMentor() };
     if (domain) filter.domains = domain;
     if (day) filter["availability.day"] = day;
     if (format) filter.sessionFormats = format;

@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { notifyProfile, showDemoData } from "@/lib/notify";
 import { connectDB } from "@/lib/db";
 import { ensureTrainSeed } from "@/lib/train/seed";
 import { assertTrainer, courseSummary, fmtIST, isTrainer, lessonIds, loadCourse } from "@/lib/train/core";
@@ -21,7 +22,7 @@ export async function GET(_req: Request, ctx: { params: Promise<{ id: string }> 
     const c = await loadCourse(id);
     const p = await getPersona();
     const owner = c ? isTrainer(p, c) : false;
-    if (!c || (!c.published && !owner)) return notFound("Course not found");
+    if (!c || (!c.published && !owner) || (c.isDemo && !showDemoData())) return notFound("Course not found");
 
     const [trainer, assignments, sessions] = await Promise.all([
       Mentor.findById(c.trainerId).select("name designation isDemo").lean<{ name: string; designation: string; isDemo: boolean }>(),
@@ -98,6 +99,7 @@ export async function PATCH(req: Request, ctx: { params: Promise<{ id: string }>
     if (b.skillTags !== undefined) { const s = cleanList(b.skillTags); if (!s.length) return badRequest("Add at least one skill tag"); set.skillTags = s; }
     if (b.published !== undefined) {
       if (b.published === true && !lessonIds(c).length) return badRequest("Add at least one module with a lesson before publishing");
+      if (b.published === true && !(await Mentor.exists({ _id: c.trainerId, verified: true })) && !c.isDemo) return badRequest("Your expert account must be approved by an admin before publishing courses");
       set.published = b.published === true;
     }
     await TrainingCourse.updateOne({ _id: c._id }, { $set: set }, { runValidators: true });

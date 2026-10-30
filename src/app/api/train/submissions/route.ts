@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { notifyProfile } from "@/lib/notify";
 import mongoose from "mongoose";
 import { connectDB } from "@/lib/db";
 import { fmtIST, isTrainer, loadCourse, requireEnrollment, safeUrl } from "@/lib/train/core";
@@ -77,6 +78,8 @@ export async function POST(req: Request) {
       { $set: { courseId: c._id, studentName: student?.name ?? "", submissionText, repositoryUrl, projectUrl, status: "SUBMITTED", submittedAt: new Date() } },
       { upsert: true, new: true }
     ).lean<{ _id: unknown; status: string; submittedAt: Date }>();
+    const asg = await TrainingAssignment.findById(a._id).select("title").lean<{ title: string }>();
+    await notifyProfile("mentor", String(c.trainerId), { title: existing ? "Submission updated" : "New assignment submission", body: `${student?.name ?? "A student"} submitted "${asg?.title ?? "an assignment"}" (${c.title}).`, link: "/train?tab=trainer" });
     return NextResponse.json({ submission: { id: String(s!._id), status: s!.status, submittedAt: s!.submittedAt }, resubmitted: Boolean(existing) }, { status: existing ? 200 : 201 });
   } catch (e) {
     return apiError(e);

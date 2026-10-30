@@ -102,6 +102,7 @@ const DEMO_STUDENTS = [
 const g = globalThis as unknown as { _gkSeeded?: Promise<void> };
 
 export function ensureSeed() {
+  if (process.env.GURUKOOL_SHOW_DEMO_DATA !== "true") return Promise.resolve();
   g._gkSeeded ??= (async () => {
     await connectDB();
     await Promise.all([MentorSession.init(), RecruiterInterest.init(), Mentor.init(), Recruiter.init()]);

@@ -59,7 +59,12 @@ export function StatusBadge({ status }: { status: string }) {
 }
 
 /** Opens the existing GURUKOOL collaboration platform. No per-session room is created or claimed. */
-export function JoinSessionButton() {
+export function JoinSessionButton({ startAt, endAt }: { startAt?: string; endAt?: string } = {}) {
+  if (startAt && endAt) {
+    const now = Date.now(), open = new Date(startAt).getTime() - 15 * 60000, close = new Date(endAt).getTime();
+    if (now < open) return <p className="text-xs text-slate-500">Join opens 15 minutes before the session.</p>;
+    if (now > close) return <p className="text-xs text-slate-500">This session has ended.</p>;
+  }
   if (!CONNECT_URL)
     return <p className="text-sm text-amber-700">Video collaboration is not configured. Please contact the administrator.</p>;
   return (

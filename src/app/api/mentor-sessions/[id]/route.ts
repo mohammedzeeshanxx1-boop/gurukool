@@ -4,7 +4,8 @@ import { connectDB } from "@/lib/db";
 import { Mentor, MentorSession, type MentorT } from "@/models/connect";
 import { apiError, badRequest, conflict, isDupKey, notFound } from "@/lib/api";
 import { ForbiddenError, getPersona } from "@/lib/persona";
-import { toMinutes } from "@/lib/slots";
+import { fmtDateTimeIST, toMinutes } from "@/lib/slots";
+import { notifyProfile } from "@/lib/notify";
 import { publicSession, type SessionDoc } from "@/lib/sessions";
 
 export const dynamic = "force-dynamic";
@@ -43,7 +44,7 @@ export async function PATCH(req: Request, ctx: { params: Promise<{ id: string }>
     await connectDB();
     const owner = p.role === "student" ? { studentId: p.id } : { mentorId: p.id };
     const s = await MentorSession.findOne({ _id: id, ...owner }).lean<{
-      status: string; mentorId: mongoose.Types.ObjectId; requestedStartAt: Date; studentId: string;
+      status: string; mentorId: mongoose.Types.ObjectId; requestedStartAt: Date; studentId: string; topic: string; mentorName: string; studentName: string;
     }>();
     if (!s) return notFound("Booking not found");
     if (!allowedFrom.includes(s.status)) return conflict(`Can't change a ${s.status} booking to ${to}.`);
@@ -86,6 +87,15 @@ export async function PATCH(req: Request, ctx: { params: Promise<{ id: string }>
       );
       autoRejected = r.modifiedCount;
     }
+    // Notify the other participant (persistent, in-app).
+    const when = fmtDateTimeIST(s.requestedStartAt);
+    if (p.role === "mentor")
+      await notifyProfile("student", s.studentId, {
+        title: `Session ${to.toLowerCase()}`, body: `${s.mentorName} ${to.toLowerCase()} your "${s.topic}" session (${when}).${note ? ` Note: ${note}` : ""}`,
+        link: "/connect?tab=sessions",
+      });
+    else
+      await notifyProfile("mentor", String(s.mentorId), { title: "Session cancelled", body: `${s.studentName} cancelled "${s.topic}" (${when}).`, link: "/connect/mentor" });
     return NextResponse.json({ session: publicSession(updated as unknown as SessionDoc, p.role), autoRejected });
   } catch (e) {
     return apiError(e);

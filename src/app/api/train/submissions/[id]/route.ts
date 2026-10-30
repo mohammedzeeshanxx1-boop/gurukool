@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { notifyProfile } from "@/lib/notify";
 import mongoose from "mongoose";
 import { connectDB } from "@/lib/db";
 import { assertTrainer, loadCourse } from "@/lib/train/core";
@@ -16,7 +17,7 @@ export async function PATCH(req: Request, ctx: { params: Promise<{ id: string }>
     if (!mongoose.isValidObjectId(id)) return notFound("Submission not found");
     const b = await req.json().catch(() => null);
     await connectDB();
-    const s = await TrainingSubmission.findById(id).lean<{ _id: unknown; assignmentId: unknown; courseId: unknown; status: string }>();
+    const s = await TrainingSubmission.findById(id).lean<{ _id: unknown; assignmentId: unknown; courseId: unknown; status: string; studentId: string }>();
     if (!s) return notFound("Submission not found");
     const c = await loadCourse(String(s.courseId));
     if (!c) return notFound("Course not found");
@@ -32,6 +33,7 @@ export async function PATCH(req: Request, ctx: { params: Promise<{ id: string }>
       { new: true }
     ).lean<{ status: string; score: number }>();
     if (!updated) return conflict("Submission changed, refresh and try again.");
+    await notifyProfile("student", s.studentId, { title: "Assignment reviewed", body: `You scored ${updated.score}/${a?.maxMarks ?? "?"} in ${c.title}.`, link: `/train/courses/${c._id}` });
     return NextResponse.json({ status: updated.status, score: updated.score });
   } catch (e) {
     return apiError(e);

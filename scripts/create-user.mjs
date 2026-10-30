@@ -50,5 +50,6 @@ if (role === "student") {
 
 const now = new Date();
 await db.collection("users").insertOne({ _id, email, passwordHash, role, name, profileId, approved: true, createdAt: now, updatedAt: now });
+if (role === "mentor") await db.collection("mentors").updateOne({ _id: new mongoose.Types.ObjectId(profileId) }, { $set: { verified: true } });
 console.log(`Created ${args.role} login ${email}${profileId ? ` → profile ${profileId}` : ""}`);
 await mongoose.disconnect();

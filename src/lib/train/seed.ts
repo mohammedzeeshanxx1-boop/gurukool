@@ -82,6 +82,7 @@ const ASSIGNMENTS = [
 const g = globalThis as unknown as { _gkTrainSeeded?: Promise<void> };
 
 export function ensureTrainSeed() {
+  if (process.env.GURUKOOL_SHOW_DEMO_DATA !== "true") return Promise.resolve();
   g._gkTrainSeeded ??= (async () => {
     await ensureSeed(); // creates the fictional demo mentors (our trainers)
     await Promise.all([TrainingCourse.init(), TrainingAssignment.init(), TrainingSession.init()]);

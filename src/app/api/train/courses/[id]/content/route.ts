@@ -1,4 +1,6 @@
 import { NextResponse } from "next/server";
+import { notifyProfile } from "@/lib/notify";
+import { TrainingEnrollment } from "@/models/train";
 import mongoose from "mongoose";
 import { connectDB } from "@/lib/db";
 import { assertTrainer, istDayName, istToDate, loadCourse } from "@/lib/train/core";
@@ -71,6 +73,9 @@ export async function POST(req: Request, ctx: { params: Promise<{ id: string }> 
             courseId: c._id, trainerId: p.id, title: str("title", 3, 140, "Session topic"), agenda: String(b.agenda ?? "").slice(0, 1000),
             startAt: start, endAt: end, status: "SCHEDULED",
           });
+          const enrolled = await TrainingEnrollment.find({ courseId: c._id }).select("studentId").lean<{ studentId: string }[]>();
+          for (const e of enrolled)
+            await notifyProfile("student", e.studentId, { title: "Live class scheduled", body: `${s.title} for ${c.title}.`, link: `/train/courses/${c._id}` });
           return NextResponse.json({ id: String(s._id) }, { status: 201 });
         }
         default:

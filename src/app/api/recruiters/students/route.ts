@@ -1,8 +1,9 @@
 import { NextResponse } from "next/server";
+import { showDemoData } from "@/lib/notify";
 import { connectDB } from "@/lib/db";
 import { ensureSeed } from "@/lib/seed";
 import { Student } from "@/models";
-import { RecruiterInterest } from "@/models/connect";
+import { Recruiter, RecruiterInterest } from "@/models/connect";
 import { apiError } from "@/lib/api";
 import { requireRole } from "@/lib/persona";
 import { matchTerm } from "@/lib/mentors";
@@ -23,7 +24,7 @@ export async function GET(req: Request) {
     const goal = sp.get("goal") ?? "";
     await connectDB();
     await ensureSeed();
-    const filter: Record<string, unknown> = { recruiterDiscoverable: true };
+    const filter: Record<string, unknown> = { recruiterDiscoverable: true, ...(showDemoData() ? {} : { isDemo: { $ne: true } }) };
     if (goal) filter.careerGoal = goal;
     let list = (await Student.find(filter)
       .select("name college branch semester careerGoal skills projects portfolioLinks isDemo")
@@ -32,12 +33,14 @@ export async function GET(req: Request) {
 
     const sent = await RecruiterInterest.find({ recruiterId: p.id }).select("studentId status").lean<{ studentId: unknown; status: string }[]>();
     const statusFor = new Map(sent.map((x) => [String(x.studentId), x.status]));
+    const me = await Recruiter.findById(p.id).select("shortlist").lean<{ shortlist?: unknown[] }>();
+    const short = new Set((me?.shortlist ?? []).map(String));
     return NextResponse.json({
       students: list.map((s) => ({
         id: String(s._id), name: s.name, college: s.college, branch: s.branch, semester: s.semester,
         careerGoal: s.careerGoal, skills: s.skills ?? [], projects: s.projects ?? [],
         links: { github: s.portfolioLinks?.github ?? "", linkedin: s.portfolioLinks?.linkedin ?? "", portfolio: s.portfolioLinks?.portfolio ?? "" },
-        isDemo: Boolean(s.isDemo), myRequestStatus: statusFor.get(String(s._id)) ?? null,
+        isDemo: Boolean(s.isDemo), myRequestStatus: statusFor.get(String(s._id)) ?? null, shortlisted: short.has(String(s._id)),
       })),
     });
   } catch (e) {

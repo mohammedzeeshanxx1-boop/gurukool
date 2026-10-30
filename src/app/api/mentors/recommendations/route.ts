@@ -5,6 +5,7 @@ import { Mentor, type MentorT } from "@/models/connect";
 import { Assessment, Roadmap, Student } from "@/models";
 import { apiError } from "@/lib/api";
 import { getPersona } from "@/lib/persona";
+import { discoverableMentor } from "@/lib/notify";
 import { CAREER_REQUIREMENTS, analyzeSkillGap, isCareerGoal } from "@/lib/careers";
 import { recommendMentors, WEIGHTS } from "@/lib/recommend";
 
@@ -36,7 +37,7 @@ export async function GET(req: Request) {
       missingSkills: gap?.missing ?? [],
       interests: student.interests ?? [],
     };
-    const mentors = (await Mentor.find({ profileStatus: "active" }).lean()) as unknown as MentorT[];
+    const mentors = (await Mentor.find({ profileStatus: "active", ...discoverableMentor() }).lean()) as unknown as MentorT[];
     return NextResponse.json({
       recommendations: recommendMentors(mentors, ctx, limit),
       basedOn: ctx,

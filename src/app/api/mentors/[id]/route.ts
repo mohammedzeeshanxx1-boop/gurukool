@@ -7,6 +7,7 @@ import { apiError, badRequest, notFound } from "@/lib/api";
 import { parseMentorInput, publicMentor } from "@/lib/mentors";
 import { ForbiddenError, getPersona } from "@/lib/persona";
 import { User } from "@/models/user";
+import { showDemoData } from "@/lib/notify";
 import { upcomingSlots } from "@/lib/slots";
 
 export const dynamic = "force-dynamic";
@@ -20,7 +21,8 @@ export async function GET(_req: Request, ctx: { params: Promise<{ id: string }> 
     const m = (await Mentor.findById(id).lean()) as MentorT | null;
     const persona = await getPersona();
     const isOwner = persona.role === "mentor" && persona.id === id;
-    if (!m || (m.profileStatus !== "active" && !isOwner)) return notFound("Mentor not found");
+    const visible = m && m.profileStatus === "active" && ((m as { verified?: boolean }).verified || (showDemoData() && m.isDemo));
+    if (!m || (!visible && !isOwner)) return notFound("Mentor not found");
 
     // Hide slots already taken by an accepted booking.
     const slots = upcomingSlots(m.availability);

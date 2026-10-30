@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { notifyProfile, showDemoData } from "@/lib/notify";
 import { connectDB } from "@/lib/db";
 import { ensureTrainSeed } from "@/lib/train/seed";
 import { apiError } from "@/lib/api";
@@ -33,7 +34,7 @@ export async function GET() {
       roadmapTopics: (roadmap?.stages ?? []).filter((s) => !s.completed).map((s) => s.topic),
       interests: student.interests ?? [],
     };
-    const courses = (await TrainingCourse.find({ published: true }).lean()) as unknown as CourseT[];
+    const courses = (await TrainingCourse.find({ published: true, ...(showDemoData() ? {} : { isDemo: { $ne: true } }) }).lean()) as unknown as CourseT[];
     const enrolled = new Set((await TrainingEnrollment.find({ studentId: p.id }).select("courseId").lean<{ courseId: unknown }[]>()).map((e) => String(e.courseId)));
     const cmap = new Map(courses.map((c) => [String(c._id), c]));
     const recs = recommendTraining(

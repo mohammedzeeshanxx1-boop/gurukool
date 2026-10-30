@@ -49,13 +49,13 @@ export async function POST(req: Request) {
       profileId = String(r._id);
     }
     try {
-      await User.create({ _id: uid, email, passwordHash: hashPassword(password), role, name, profileId, approved: role !== "recruiter" });
+      await User.create({ _id: uid, email, passwordHash: hashPassword(password), role, name, profileId, approved: role === "student" });
     } catch (e) {
       if (isDupKey(e)) return conflict("An account with this email already exists. Please sign in.");
       throw e;
     }
     await setPersona({ role, id: profileId, uid: String(uid) });
-    return NextResponse.json({ redirect: HOME[role], approved: role !== "recruiter" }, { status: 201 });
+    return NextResponse.json({ redirect: HOME[role], approved: role === "student" }, { status: 201 });
   } catch (e) {
     return apiError(e);
   }

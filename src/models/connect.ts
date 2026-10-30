@@ -40,6 +40,7 @@ const MentorSchema = new Schema(
     availability: { type: [SlotSchema], default: [] },
     profileStatus: { type: String, enum: ["active", "draft"], default: "active", index: true },
     isDemo: { type: Boolean, default: false },
+    verified: { type: Boolean, default: false, index: true }, // set when an admin approves the expert account
   },
   { timestamps: true }
 );
@@ -78,6 +79,7 @@ const RecruiterSchema = new Schema(
     designation: { type: String, required: true },
     email: { type: String, default: "" },
     isDemo: { type: Boolean, default: true },
+    shortlist: { type: [Schema.Types.ObjectId], ref: "Student", default: [] },
   },
   { timestamps: true }
 );

@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { notifyProfile, showDemoData } from "@/lib/notify";
 import { connectDB } from "@/lib/db";
 import { loadCourse } from "@/lib/train/core";
 import { apiError, badRequest, conflict, isDupKey, notFound } from "@/lib/api";
@@ -19,6 +20,8 @@ export async function POST(_req: Request, ctx: { params: Promise<{ id: string }>
     if (!(await Student.exists({ key: p.id }))) return badRequest("Save your student profile on the Dashboard first.");
     try {
       const e = await TrainingEnrollment.create({ studentId: p.id, courseId: c._id, completedLessonIds: [] });
+      const st = await Student.findOne({ key: p.id }).select("name").lean<{ name: string }>();
+      await notifyProfile("mentor", String(c.trainerId), { title: "New enrollment", body: `${st?.name ?? "A student"} enrolled in ${c.title}.`, link: "/train?tab=trainer" });
       return NextResponse.json({ enrollment: { id: String(e._id), enrolledAt: e.enrolledAt } }, { status: 201 });
     } catch (e) {
       if (isDupKey(e)) return conflict("You're already enrolled in this course.");

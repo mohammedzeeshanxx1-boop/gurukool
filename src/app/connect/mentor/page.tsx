@@ -2,6 +2,7 @@
 import Link from "next/link";
 import { useCallback, useEffect, useState } from "react";
 import { Alert, ErrorAlert, PageHeader, Spinner, api, toErr, type ApiErr } from "@/components/ui";
+import ApprovalBanner from "@/components/ApprovalBanner";
 import {
   JoinSessionButton, ProfileBadge, StatusBadge, fmtTime, switchPersona, usePersona,
   type Booking, type Mentor, type Slot,
@@ -193,6 +194,7 @@ export default function MentorDashboard() {
     <div className="mx-auto max-w-5xl space-y-6">
       <PageHeader title="Mentor Dashboard" subtitle={mentor ? `${mentor.name} · ${mentor.designation}` : "Loading…"}
         right={mentor && <div className="flex items-center gap-2"><ProfileBadge isDemo={mentor.isDemo} /><Link href={`/connect/mentors/${mentor.id}`} className="btn-ghost">View public profile</Link></div>} />
+      <ApprovalBanner />
       <ErrorAlert err={err} />
       {notice && <Alert kind="success">{notice}</Alert>}
 
@@ -218,7 +220,7 @@ export default function MentorDashboard() {
           const started = new Date(b.startAt).getTime() <= now;
           return (
             <BookingRow key={b.id} b={b} actions={<>
-              <JoinSessionButton />
+              <JoinSessionButton startAt={b.startAt} endAt={b.endAt} />
               {started
                 ? <button className="btn-ghost px-3 py-1.5" disabled={busy === b.id} onClick={() => act(b.id, "COMPLETED")}>Mark completed</button>
                 : <span className="text-xs text-slate-400">Can be marked completed after it starts</span>}

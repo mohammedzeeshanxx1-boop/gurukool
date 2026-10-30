@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { notifyProfile } from "@/lib/notify";
 import mongoose from "mongoose";
 import { connectDB } from "@/lib/db";
 import { Student } from "@/models";
@@ -37,11 +38,12 @@ export async function PATCH(req: Request, ctx: { params: Promise<{ id: string }>
       { _id: id, ...owner, status: "PENDING" },
       { $set: { status: to }, $unset: { pendingKey: 1 } },
       { new: true }
-    ).lean<{ status: string }>();
+    ).lean<{ status: string; recruiterId: unknown }>();
     if (!updated) {
       const exists = await RecruiterInterest.exists({ _id: id, ...owner });
       return exists ? conflict("This request has already been answered.") : notFound("Request not found");
     }
+    if (p.role === "student") await notifyProfile("recruiter", String(updated.recruiterId), { title: `Request ${updated.status.toLowerCase()}`, body: `A student ${updated.status.toLowerCase()} your connection request.`, link: "/grow/recruiter" });
     return NextResponse.json({ status: updated.status });
   } catch (e) {
     return apiError(e);

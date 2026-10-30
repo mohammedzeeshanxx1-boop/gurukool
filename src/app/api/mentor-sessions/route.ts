@@ -9,6 +9,8 @@ import { ForbiddenError, getPersona, requireRole } from "@/lib/persona";
 import { DURATIONS, upcomingSlots } from "@/lib/slots";
 import { publicSession, type SessionDoc } from "@/lib/sessions";
 import { User } from "@/models/user";
+import { notifyProfile, showDemoData } from "@/lib/notify";
+import { fmtDateTimeIST } from "@/lib/slots";
 
 export const dynamic = "force-dynamic";
 
@@ -60,7 +62,8 @@ export async function POST(req: Request) {
     const student = await Student.findOne({ key: p.id }).lean();
     if (!student) return badRequest("Save your student profile on the Dashboard first.");
     const mentor = (await Mentor.findById(b.mentorId).lean()) as MentorT | null;
-    if (!mentor || mentor.profileStatus !== "active") return notFound("Mentor not found");
+    const bookable = mentor && mentor.profileStatus === "active" && ((mentor as { verified?: boolean }).verified || (showDemoData() && mentor.isDemo));
+    if (!mentor || !bookable) return notFound("Mentor not found or not yet verified");
     if (!mentor.teachingTopics.includes(topic)) return badRequest("This mentor doesn't offer that topic");
 
     // Must be one of the mentor's real configured slots, and the duration must fit inside it.
@@ -87,6 +90,9 @@ export async function POST(req: Request) {
         studentId: p.id, studentName, studentEmail, mentorId: mentor._id, mentorName: mentor.name, topic,
         requestedStartAt: startAt, requestedEndAt: endAt, durationMinutes, message, status: "PENDING",
         activeKey: `${p.id}|${mentor._id}|${startIso}`,
+      });
+      await notifyProfile("mentor", String(mentor._id), {
+        title: "New session request", body: `${studentName} requested "${topic}" for ${fmtDateTimeIST(startAt)}.`, link: "/connect/mentor",
       });
       return NextResponse.json({ session: publicSession(s.toObject() as SessionDoc, "student") }, { status: 201 });
     } catch (e) {

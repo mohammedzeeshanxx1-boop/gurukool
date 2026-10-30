@@ -136,7 +136,7 @@ function MySessions() {
                   {b.statusNote && <p className="mt-1 text-xs text-slate-500">Note: {b.statusNote}</p>}
                 </div>
                 <div className="flex flex-col items-end gap-2">
-                  {b.status === "ACCEPTED" && <JoinSessionButton />}
+                  {b.status === "ACCEPTED" && <JoinSessionButton startAt={b.startAt} endAt={b.endAt} />}
                   {(b.status === "PENDING" || b.status === "ACCEPTED") && (
                     <button className="text-xs text-red-600 hover:underline" disabled={busy === b.id} onClick={() => cancel(b.id)}>Cancel request</button>
                   )}
@@ -195,12 +195,6 @@ function ConnectInner() {
       <PageHeader
         title="Connect with Industry. Learn from Experience."
         subtitle="Discover professionals, book mentorship sessions, attend weekend masterclasses, and grow your professional network."
-        right={
-          <div className="flex gap-2">
-            <Link href="/connect/mentor" className="btn-ghost">Mentor Dashboard</Link>
-            <Link href="/grow/recruiter" className="btn-ghost">Recruiter Dashboard</Link>
-          </div>
-        }
       />
       <div role="tablist" className="mb-6 flex gap-1 overflow-x-auto border-b border-slate-200">
         {TABS.map((t) => (

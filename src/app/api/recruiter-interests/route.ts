@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { notifyProfile } from "@/lib/notify";
 import mongoose from "mongoose";
 import { connectDB } from "@/lib/db";
 import { ensureSeed } from "@/lib/seed";
@@ -62,13 +63,16 @@ export async function POST(req: Request) {
     if (message.length < 10 || message.length > 1000) return badRequest("Message must be 10–1000 characters");
     if (type === "INVITE" && !opportunityTitle) return badRequest("Add the opportunity title for an invitation");
     await connectDB();
-    const student = await Student.findOne({ _id: b.studentId, recruiterDiscoverable: true }).select("_id").lean();
+    const student = await Student.findOne({ _id: b.studentId, recruiterDiscoverable: true }).select("_id key").lean<{ _id: unknown; key: string }>();
     if (!student) return notFound("Student not found or not open to recruiters");
     try {
+      const rec = await Recruiter.findById(p.id).select("name organization").lean<{ name: string; organization: string }>();
+      void rec;
       const doc = await RecruiterInterest.create({
         recruiterId: p.id, studentId: b.studentId, type, opportunityTitle, message, status: "PENDING",
         pendingKey: `${p.id}|${b.studentId}`,
       });
+      await notifyProfile("student", student.key, { title: type === "INVITE" ? "Invitation to apply" : "A recruiter is interested", body: `${rec?.name ?? "A recruiter"} (${rec?.organization ?? ""}) sent you a request.`, link: "/grow" });
       return NextResponse.json({ interest: { id: String(doc._id), status: doc.status } }, { status: 201 });
     } catch (e) {
       if (isDupKey(e)) return conflict("You already have an open request with this student.");

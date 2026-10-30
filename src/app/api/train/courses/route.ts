@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { notifyProfile, showDemoData } from "@/lib/notify";
 import { connectDB } from "@/lib/db";
 import { ensureTrainSeed } from "@/lib/train/seed";
 import { courseSummary } from "@/lib/train/core";
@@ -21,7 +22,7 @@ export async function GET(req: Request) {
     const category = sp.get("category") ?? "";
     const difficulty = sp.get("difficulty") ?? "";
     const vis = p.role === "mentor" ? { $or: [{ published: true }, { trainerId: p.id }] } : { published: true };
-    const filter: Record<string, unknown> = { ...vis };
+    const filter: Record<string, unknown> = { ...vis, ...(showDemoData() ? {} : { isDemo: { $ne: true } }) };
     if (category) filter.category = category;
     if (difficulty) filter.difficulty = difficulty;
     let courses = (await TrainingCourse.find(filter).sort({ isDemo: 1, createdAt: -1 }).lean()) as unknown as CourseT[];

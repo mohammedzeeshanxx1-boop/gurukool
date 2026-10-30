@@ -4,7 +4,8 @@ import { connectDB } from "@/lib/db";
 import { apiError, badRequest, notFound } from "@/lib/api";
 import { ForbiddenError, requireRole } from "@/lib/persona";
 import { User } from "@/models/user";
-import { Recruiter } from "@/models/connect";
+import { Mentor, Recruiter } from "@/models/connect";
+import { notifyUser } from "@/lib/notify";
 
 export const dynamic = "force-dynamic";
 
@@ -44,10 +45,16 @@ export async function PATCH(req: Request) {
     if (typeof b.active === "boolean") set.active = b.active;
     if (!Object.keys(set).length) return badRequest("Nothing to update");
     await connectDB();
-    const target = await User.findById(b.id).select("role").lean<{ role: string }>();
+    const target = await User.findById(b.id).select("role profileId").lean<{ role: string; profileId: string }>();
     if (!target) return notFound("User not found");
-    if ("approved" in set && target.role !== "recruiter") return badRequest("Approval applies to recruiter accounts only");
+    if ("approved" in set && target.role !== "recruiter" && target.role !== "mentor") return badRequest("Approval applies to expert and recruiter accounts");
     await User.updateOne({ _id: b.id }, { $set: set });
+    // Approving an expert makes their profile discoverable/bookable; revoking hides it.
+    if ("approved" in set && target.role === "mentor" && mongoose.isValidObjectId(target.profileId))
+      await Mentor.updateOne({ _id: target.profileId }, { $set: { verified: set.approved } });
+    if ("approved" in set)
+      await notifyUser(b.id, { title: set.approved ? "Account approved" : "Approval revoked", body: set.approved ? "An admin approved your account. You now have full access." : "An admin revoked your account approval.", link: target.role === "mentor" ? "/connect/mentor" : "/grow/recruiter" });
+    if ("active" in set && !set.active) await notifyUser(b.id, { title: "Account suspended", body: "Contact the GURUKOOL admin." });
     return NextResponse.json({ ok: true, ...set });
   } catch (e) {
     return apiError(e);

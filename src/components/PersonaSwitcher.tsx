@@ -2,6 +2,7 @@
 import Link from "next/link";
 import { api } from "./ui";
 import { usePersona } from "./connect";
+import Notifications from "./Notifications";
 
 const ROLE_LABEL: Record<string, string> = { student: "Student", mentor: "Expert / Mentor", recruiter: "Recruiter", admin: "Admin" };
 
@@ -14,6 +15,7 @@ export default function PersonaSwitcher() {
       <div className="text-[11px] font-semibold uppercase tracking-wide text-slate-500">Signed in</div>
       <div className="mt-1 truncate text-sm font-medium text-slate-800">{info.current.label}</div>
       <div className="text-xs text-slate-500">{ROLE_LABEL[info.persona.role] ?? info.persona.role}</div>
+      <Notifications />
       <Link href="/account" className="btn-ghost mt-3 w-full py-1.5 text-xs">Account settings</Link>
       <button
         className="btn-ghost mt-2 w-full py-1.5 text-xs"
