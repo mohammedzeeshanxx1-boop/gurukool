@@ -6,26 +6,32 @@ import { CAREER_GOALS } from "@/lib/careers";
 
 type Status = { db: { configured: boolean; connected: boolean; error?: string }; ai: { configured: boolean; model: string | null }; connectUrlConfigured: boolean };
 
-const DEMO = {
-  name: "Aarav Sharma", email: "aarav.sharma@example.com", college: "RV College of Engineering",
-  branch: "Computer Science & Engineering", semester: 5, skills: "HTML, CSS, JavaScript, Python, Git",
-  careerGoal: "Full Stack Developer", interests: "Web Development, AI, Open Source",
+// Empty form; name/email come from the signed-in account (single source of truth: MongoDB).
+const EMPTY_FORM = {
+  name: "", email: "", college: "", branch: "", semester: 1, skills: "", careerGoal: "Full Stack Developer", interests: "",
 };
 
 export default function Dashboard() {
   const { student, setStudent, loading, error } = useStudent();
   const [status, setStatus] = useState<Status | null>(null);
-  const [form, setForm] = useState(DEMO);
+  const [form, setForm] = useState(EMPTY_FORM);
   const [saving, setSaving] = useState(false);
   const [msg, setMsg] = useState<string | null>(null);
   const [saveErr, setSaveErr] = useState<ApiErr | null>(null);
 
   useEffect(() => { api<Status>("/api/status").then(setStatus).catch(() => {}); }, []);
+  const [account, setAccount] = useState<{ name: string; email: string } | null>(null);
+  useEffect(() => {
+    api<{ user: { name: string; email: string } }>("/api/auth/me").then((d) => {
+      setAccount(d.user);
+      setForm((f) => ({ ...f, name: f.name || d.user.name, email: d.user.email }));
+    }).catch(() => {});
+  }, []);
   useEffect(() => {
     if (student) setForm({ ...student, skills: student.skills.join(", "), interests: student.interests.join(", ") });
   }, [student]);
 
-  const set = (k: keyof typeof DEMO) => (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) =>
+  const set = (k: keyof typeof EMPTY_FORM) => (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) =>
     setForm({ ...form, [k]: e.target.value });
 
   async function save(e: React.FormEvent) {
@@ -35,6 +41,7 @@ export default function Dashboard() {
       const d = await api<{ student: typeof student }>("/api/student", { method: "PUT", body: JSON.stringify(form) });
       setStudent(d.student);
       setMsg("Profile saved to MongoDB.");
+      window.dispatchEvent(new Event("gk-account-updated"));
     } catch (e) {
       setSaveErr(toErr(e));
     } finally {
@@ -52,7 +59,7 @@ export default function Dashboard() {
   return (
     <div className="mx-auto max-w-6xl">
       <PageHeader
-        title={student ? `Welcome back, ${student.name.split(" ")[0]}` : "Welcome to GURUKOOL"}
+        title={student || account ? `Welcome back, ${(student?.name ?? account?.name ?? "").split(" ")[0]}` : "Welcome to GURUKOOL"}
         subtitle="Your AI-powered engineering learning journey: profile → skill gaps → assessment → roadmap → build."
         right={<Link href="/learn" className="btn-primary">Start learning →</Link>}
       />
@@ -61,12 +68,11 @@ export default function Dashboard() {
         <form onSubmit={save} className="card lg:col-span-2 space-y-4">
           <div className="flex items-center justify-between">
             <h2 className="h2">Student profile</h2>
-            {!student && <button type="button" className="text-xs text-blue-600 hover:underline" onClick={() => setForm(DEMO)}>Fill demo student</button>}
           </div>
           {loading ? <div className="text-sm text-slate-500"><Spinner /> Loading profile…</div> : <ErrorAlert err={error} />}
           <div className="grid gap-4 sm:grid-cols-2">
             <div><label className="label">Name</label><input className="input" value={form.name} onChange={set("name")} required /></div>
-            <div><label className="label">Email</label><input className="input" type="email" value={form.email} onChange={set("email")} /></div>
+            <div><label className="label">Email (account)</label><input className="input bg-slate-50" type="email" value={form.email} readOnly title="Your sign-in email. Change it in Account settings." /></div>
             <div className="sm:col-span-2"><label className="label">College</label><input className="input" value={form.college} onChange={set("college")} required /></div>
             <div><label className="label">Engineering branch</label><input className="input" value={form.branch} onChange={set("branch")} required /></div>
             <div><label className="label">Semester</label>

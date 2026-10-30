@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { connectDB } from "@/lib/db";
 import { Student } from "@/models";
 import { requireRole } from "@/lib/persona";
+import { User } from "@/models/user";
 import { apiError, badRequest } from "@/lib/api";
 import { isCareerGoal } from "@/lib/careers";
 
@@ -26,21 +27,23 @@ const splitList = (v: unknown) =>
 
 export async function PUT(req: Request) {
   try {
-    const KEY = (await requireRole("student")).id;
+    const me = await requireRole("student");
+    const KEY = me.id;
     const body = await req.json().catch(() => null);
     if (!body) return badRequest("Invalid JSON body");
-    const { name, email, college, branch, semester, careerGoal } = body;
+    const { name, college, branch, semester, careerGoal } = body;
     if (!name || !college || !branch) return badRequest("Name, college and branch are required");
     const sem = Number(semester);
     if (!Number.isInteger(sem) || sem < 1 || sem > 10) return badRequest("Semester must be 1–10");
     if (!isCareerGoal(careerGoal)) return badRequest("Pick a valid career goal");
     await connectDB();
+    const account = await User.findByIdAndUpdate(me.uid, { $set: { name: String(name).slice(0, 100) } }, { new: true }).select("email").lean<{ email: string }>();
     const student = await Student.findOneAndUpdate(
       { key: KEY },
       {
         key: KEY,
         name: String(name).slice(0, 100),
-        email: String(email ?? "").slice(0, 120),
+        email: account?.email ?? "",
         college: String(college).slice(0, 150),
         branch: String(branch).slice(0, 100),
         semester: sem,

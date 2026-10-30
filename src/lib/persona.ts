@@ -19,6 +19,12 @@ export const demoPersonasEnabled = () => false;
 export async function getPersona(): Promise<Persona> {
   const s = decodeSession((await cookies()).get(SESSION_COOKIE)?.value);
   if (!s) throw new UnauthorizedError();
+  const { connectDB } = await import("./db");
+  const { User } = await import("@/models/user");
+  await connectDB();
+  const u = await User.findById(s.uid).select("role active").lean<{ role: Role; active?: boolean }>();
+  if (!u || u.role !== s.role) throw new UnauthorizedError("Your session is no longer valid. Please sign in again.");
+  if (u.active === false) throw new ForbiddenError("This account has been suspended. Contact the GURUKOOL admin.");
   return { role: s.role, id: s.id, uid: s.uid };
 }
 

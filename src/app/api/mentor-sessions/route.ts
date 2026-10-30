@@ -8,6 +8,7 @@ import { apiError, badRequest, conflict, isDupKey, notFound } from "@/lib/api";
 import { ForbiddenError, getPersona, requireRole } from "@/lib/persona";
 import { DURATIONS, upcomingSlots } from "@/lib/slots";
 import { publicSession, type SessionDoc } from "@/lib/sessions";
+import { User } from "@/models/user";
 
 export const dynamic = "force-dynamic";
 
@@ -34,8 +35,11 @@ export async function POST(req: Request) {
     const p = await requireRole("student");
     const b = await req.json().catch(() => null);
     if (!b) return badRequest("Invalid JSON body");
-    const studentName = String(b.studentName ?? "").trim().slice(0, 100);
-    const studentEmail = String(b.studentEmail ?? "").trim().slice(0, 120);
+    // Identity comes from the signed-in account, not the request body.
+    await connectDB();
+    const account = await User.findById(p.uid).select("name email").lean<{ name: string; email: string }>();
+    const studentName = (account?.name ?? "").slice(0, 100);
+    const studentEmail = (account?.email ?? "").slice(0, 120);
     const topic = String(b.topic ?? "").trim();
     const message = String(b.message ?? "").trim();
     const durationMinutes = Number(b.durationMinutes);

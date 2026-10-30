@@ -24,6 +24,8 @@ export async function POST(req: Request) {
     // Same message for unknown email and wrong password (no account enumeration).
     if (!u || !verifyPassword(password, u.passwordHash))
       return NextResponse.json({ error: "Invalid email or password.", code: "INVALID_CREDENTIALS" }, { status: 401 });
+    if (u.active === false)
+      return NextResponse.json({ error: "This account has been suspended. Contact the GURUKOOL admin.", code: "SUSPENDED" }, { status: 403 });
     const role = PORTALS[portal];
     if (u.role !== role)
       return NextResponse.json({ error: `This is a ${LABEL[u.role]} account. Please use the ${LABEL[u.role]} sign-in.`, code: "WRONG_PORTAL" }, { status: 403 });

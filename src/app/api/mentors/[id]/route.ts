@@ -6,6 +6,7 @@ import { Mentor, MentorSession, type MentorT } from "@/models/connect";
 import { apiError, badRequest, notFound } from "@/lib/api";
 import { parseMentorInput, publicMentor } from "@/lib/mentors";
 import { ForbiddenError, getPersona } from "@/lib/persona";
+import { User } from "@/models/user";
 import { upcomingSlots } from "@/lib/slots";
 
 export const dynamic = "force-dynamic";
@@ -61,6 +62,7 @@ export async function PATCH(req: Request, ctx: { params: Promise<{ id: string }>
     await connectDB();
     const m = (await Mentor.findByIdAndUpdate(id, { $set: data }, { new: true, runValidators: true }).lean()) as MentorT | null;
     if (!m) return notFound("Mentor not found");
+    if (typeof data?.name === "string") await User.updateOne({ _id: persona.uid }, { $set: { name: data.name } });
     return NextResponse.json({ mentor: publicMentor(m) });
   } catch (e) {
     return apiError(e);

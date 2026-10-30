@@ -31,7 +31,11 @@ export function usePersona() {
   const reload = useCallback(() => {
     api<PersonaInfo>("/api/persona").then((d) => { setInfo(d); setError(null); }).catch((e) => setError((e as Error).message));
   }, []);
-  useEffect(() => { reload(); }, [reload]);
+  useEffect(() => {
+    reload();
+    window.addEventListener("gk-account-updated", reload);
+    return () => window.removeEventListener("gk-account-updated", reload);
+  }, [reload]);
   return { info, role: info?.persona.role, id: info?.persona.id, error, reload };
 }
 

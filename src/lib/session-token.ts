@@ -44,6 +44,7 @@ export const HOME: Record<Role, string> = { student: "/", mentor: "/connect/ment
 /** Roles allowed on a page path, or null for public pages. */
 export function allowedRoles(path: string): Role[] | null {
   if (path === "/welcome" || /^\/(student|recruiter|expert|admin)\/(login|register)\/?$/.test(path)) return null;
+  if (path.startsWith("/account")) return ["student", "mentor", "recruiter", "admin"];
   if (path.startsWith("/connect/mentor") && !path.startsWith("/connect/mentors")) return ["mentor"];
   if (path.startsWith("/grow/recruiter")) return ["recruiter"];
   if (path.startsWith("/admin")) return ["admin"];

@@ -95,8 +95,8 @@ export default function MentorProfilePage({ params }: { params: Promise<{ id: st
               ) : (
                 <>
                   <div className="grid grid-cols-2 gap-3">
-                    <div><label className="label">Your name</label><input className="input" value={form.studentName} onChange={set("studentName")} required /></div>
-                    <div><label className="label">Your email</label><input className="input" type="email" value={form.studentEmail} onChange={set("studentEmail")} required /></div>
+                    <div><label className="label">Your name</label><input className="input bg-slate-50" value={form.studentName} readOnly /></div>
+                    <div><label className="label">Your email</label><input className="input bg-slate-50" type="email" value={form.studentEmail} readOnly /></div>
                   </div>
                   <div><label className="label">Mentor</label><input className="input bg-slate-50" value={m.name} readOnly /></div>
                   <div><label className="label">Topic</label>
