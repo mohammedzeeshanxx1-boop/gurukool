@@ -1,0 +1,54 @@
+import { NextResponse } from "next/server";
+import { connectDB } from "@/lib/db";
+import { Student, DEMO_KEY } from "@/models";
+import { apiError, badRequest } from "@/lib/api";
+import { isCareerGoal } from "@/lib/careers";
+
+export const dynamic = "force-dynamic";
+
+export async function GET() {
+  try {
+    await connectDB();
+    const student = await Student.findOne({ key: DEMO_KEY }).lean();
+    return NextResponse.json({ student });
+  } catch (e) {
+    return apiError(e);
+  }
+}
+
+const splitList = (v: unknown) =>
+  (Array.isArray(v) ? v : String(v ?? "").split(","))
+    .map((s) => String(s).trim())
+    .filter(Boolean)
+    .slice(0, 50);
+
+export async function PUT(req: Request) {
+  try {
+    const body = await req.json().catch(() => null);
+    if (!body) return badRequest("Invalid JSON body");
+    const { name, email, college, branch, semester, careerGoal } = body;
+    if (!name || !college || !branch) return badRequest("Name, college and branch are required");
+    const sem = Number(semester);
+    if (!Number.isInteger(sem) || sem < 1 || sem > 10) return badRequest("Semester must be 1–10");
+    if (!isCareerGoal(careerGoal)) return badRequest("Pick a valid career goal");
+    await connectDB();
+    const student = await Student.findOneAndUpdate(
+      { key: DEMO_KEY },
+      {
+        key: DEMO_KEY,
+        name: String(name).slice(0, 100),
+        email: String(email ?? "").slice(0, 120),
+        college: String(college).slice(0, 150),
+        branch: String(branch).slice(0, 100),
+        semester: sem,
+        careerGoal,
+        skills: splitList(body.skills),
+        interests: splitList(body.interests),
+      },
+      { upsert: true, new: true, runValidators: true }
+    ).lean();
+    return NextResponse.json({ student });
+  } catch (e) {
+    return apiError(e);
+  }
+}
