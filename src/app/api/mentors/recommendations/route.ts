@@ -5,7 +5,7 @@ import { Mentor, type MentorT } from "@/models/connect";
 import { Assessment, Roadmap, Student } from "@/models";
 import { apiError } from "@/lib/api";
 import { getPersona } from "@/lib/persona";
-import { analyzeSkillGap, isCareerGoal } from "@/lib/careers";
+import { CAREER_REQUIREMENTS, analyzeSkillGap, isCareerGoal } from "@/lib/careers";
 import { recommendMentors, WEIGHTS } from "@/lib/recommend";
 
 export const dynamic = "force-dynamic";
@@ -27,8 +27,10 @@ export async function GET(req: Request) {
       Assessment.findOne({ studentKey: p.id, submittedAt: { $ne: null } }).sort({ submittedAt: -1 }).lean<{ weakTopics: string[] }>(),
       Roadmap.findOne({ studentKey: p.id }).sort({ createdAt: -1 }).lean<{ stages: { topic: string; completed: boolean }[] }>(),
     ]);
+    // Reads existing Skill Intelligence outputs only (skill gap, saved assessment, saved roadmap).
     const ctx = {
       careerGoal: goal,
+      requiredSkills: isCareerGoal(goal) ? CAREER_REQUIREMENTS[goal].map((r) => r.skill) : [],
       weakTopics: assessment?.weakTopics ?? [],
       roadmapTopics: (roadmap?.stages ?? []).filter((s) => !s.completed).map((s) => s.topic),
       missingSkills: gap?.missing ?? [],
@@ -38,7 +40,8 @@ export async function GET(req: Request) {
     return NextResponse.json({
       recommendations: recommendMentors(mentors, ctx, limit),
       basedOn: ctx,
-      method: `Rule-based scoring: weak quiz topic +${WEIGHTS.weakTopic}, roadmap stage +${WEIGHTS.roadmap}, missing skill +${WEIGHTS.missingSkill}, career-goal domain +${WEIGHTS.careerGoal}, interest +${WEIGHTS.interest}.`,
+      engine: "GURUKOOL Mentor Match Engine (deterministic, no external AI)",
+      method: `score = ${WEIGHTS.weakness}·weakness + ${WEIGHTS.roadmap}·roadmap + ${WEIGHTS.careerGoal}·career goal + ${WEIGHTS.availability}·weekend availability (each normalised 0–1)`,
     });
   } catch (e) {
     return apiError(e);

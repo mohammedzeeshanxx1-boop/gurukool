@@ -3,13 +3,14 @@ import Link from "next/link";
 import { Suspense, useCallback, useEffect, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { Alert, ErrorAlert, PageHeader, Spinner, api, toErr, type ApiErr } from "@/components/ui";
+import { MatchBreakdown, type MatchRec } from "@/components/MentorRecommendations";
 import {
   JoinSessionButton, MentorCard, PersonaGate, ProfileBadge, StatusBadge, usePersona,
-  type Booking, type Mentor, type UpcomingSlot,
+  type Booking, type Mentor,
 } from "@/components/connect";
 
 type Facets = { domains: string[]; days: string[]; formats: string[] };
-type Rec = { mentor: Mentor; score: number; reasons: string[]; nextSlots: UpcomingSlot[] };
+type Rec = MatchRec;
 const TABS = [
   { id: "find", label: "Find Mentors" },
   { id: "sessions", label: "My Sessions" },
@@ -50,16 +51,20 @@ function FindMentors() {
 
   return (
     <div className="space-y-8">
+      <div>
+        <h2 className="text-xl font-bold text-slate-900">Learn Directly from Industry Professionals</h2>
+        <p className="mt-1 text-sm text-slate-500">Connect with experienced developers, request weekend masterclasses, and receive guidance based on your learning needs.</p>
+      </div>
       <section>
         <div className="mb-3 flex flex-wrap items-baseline justify-between gap-2">
           <h2 className="h2">Recommended for your learning path</h2>
-          <span className="text-xs text-slate-500">Rule-based match on your quiz weak topics, roadmap and skill gaps</span>
+          <span className="text-xs text-slate-500">GURUKOOL Mentor Match Engine: weak skills 40% · roadmap 30% · career goal 20% · weekend slots 10%</span>
         </div>
         {recs === null ? <div className="text-sm text-slate-500"><Spinner /> Matching mentors…</div>
           : recs.length === 0 ? (
             <Alert kind="info">{recNote ?? <>No matches yet. Complete <Link href="/learn" className="font-semibold underline">Learn</Link> (skill gaps, assessment, roadmap) to get personalised mentor recommendations.</>}</Alert>
           ) : (
-            <div className="grid gap-4 lg:grid-cols-3">{recs.map((r) => <MentorCard key={r.mentor.id} m={r.mentor} reason={r.reasons} />)}</div>
+            <div className="grid gap-4 lg:grid-cols-3">{recs.map((r) => <MentorCard key={r.mentor.id} m={r.mentor} reason={[r.explanation]} extra={<MatchBreakdown r={r} />} />)}</div>
           )}
       </section>
 

@@ -129,8 +129,17 @@ async function main() {
 
   console.log("\nRecommendations");
   const recs = await call("GET", "/api/mentors/recommendations?limit=3");
-  check("recommendations endpoint responds", recs.status === 200 && Array.isArray(recs.data.recommendations));
-  if (recs.data.recommendations?.[0]) console.log(`    top: ${recs.data.recommendations[0].mentor.name} — ${recs.data.recommendations[0].reasons[0]}`);
+  check("Mentor Match Engine responds", recs.status === 200 && Array.isArray(recs.data.recommendations) && /Mentor Match Engine/.test(recs.data.engine));
+  const top = recs.data.recommendations?.[0];
+  if (top) {
+    const c = top.components;
+    check("match result has score, normalised components, basis, matching skills, explanation, slots",
+      Number.isInteger(top.matchScore) && ["weakness", "roadmap", "careerGoal", "availability"].every((k) => c[k] >= 0 && c[k] <= 1) &&
+      ["evidence", "interest"].includes(top.basis) && Array.isArray(top.matchingSkills) && top.explanation.startsWith("Recommended because") && Array.isArray(top.availableSlots));
+    check("score equals the 40/30/20/10 weighted sum", Math.abs(top.matchScore - Math.round(100 * (0.4 * c.weakness + 0.3 * c.roadmap + 0.2 * c.careerGoal + 0.1 * c.availability))) <= 1);
+    check("evidence basis only when an assessment exists", (top.basis === "evidence") === (recs.data.basedOn.weakTopics.length > 0));
+    console.log(`    top: ${top.mentor.name} (${top.matchScore}%, ${top.basis}) — ${top.explanation}`);
+  } else console.log("    (no matches yet — complete LEARN first to see engine output)");
 
   console.log("\nRecruiter portal");
   await as("recruiter", opt("recruiter").id);

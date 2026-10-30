@@ -66,24 +66,5 @@ export function parseMentorInput(body: Record<string, unknown>, partial = false)
   return { data };
 }
 
-// Loose, explainable text matching used by filters and recommendations.
-const SYNONYMS: Record<string, string[]> = {
-  "node.js": ["node", "nodejs", "express", "backend"], "rest apis": ["api", "apis", "rest"],
-  "data structures & algorithms": ["dsa", "algorithms", "data structures", "interview"],
-  "machine learning": ["ml", "ai"], "deep learning": ["neural", "pytorch"], "deployment & cloud": ["cloud", "docker", "deploy"],
-  "authentication & security": ["security", "auth", "jwt"], react: ["frontend", "reactjs"], sql: ["database", "postgres", "mysql"],
-  mongodb: ["mongo", "database", "nosql"], "system design": ["architecture", "scalability"],
-};
-const norm = (s: string) => s.toLowerCase().replace(/\s+/g, " ").trim();
-
-/** Does `target` (e.g. "Node.js Fundamentals") relate to any mentor term? Returns the matching mentor term. */
-export function matchTerm(target: string, mentorTerms: string[]): string | null {
-  const t = norm(target);
-  const hits = (keys: string[]) =>
-    mentorTerms.find((term) => {
-      const m = norm(term);
-      return m.length >= 2 && keys.some((k) => k.length >= 2 && (m === k || (k.length >= 3 && m.includes(k)) || (m.length >= 3 && k.includes(m))));
-    }) ?? null;
-  // Direct matches beat synonym matches (e.g. "Node.js Fundamentals" → "Node.js", not "Express.js").
-  return hits([t]) ?? hits(Object.entries(SYNONYMS).filter(([k]) => t.includes(k)).flatMap(([, v]) => v));
-}
+// Text matching lives in the Mentor Match Engine; re-exported for existing imports.
+export { matchTerm } from "./mentor-matching/match";

@@ -47,13 +47,25 @@ The Dashboard's **System status** card shows live MongoDB / AI / Connect status.
 | My Sessions (status, cancel, **Join Mentorship Session** when ACCEPTED) | `/connect?tab=sessions` |
 | Industry Network (professional directory) | `/connect?tab=network` |
 | Mentor Dashboard (profile, availability, pending / upcoming / completed) | `/connect/mentor` |
-| "Learn from an Industry Expert" (recommendations inside LEARN) | `/learn` |
+| "Get Help from an Industry Expert" (Mentor Match Engine inside LEARN, with Book Session) | `/learn` |
 | Recruiter Connect for students (opt-in, portfolio links, accept/decline requests) | `/grow` |
 | Recruiter Dashboard (opted-in students, skill/goal filters, express interest / invite) | `/grow/recruiter` |
 
 **Booking rules (server-side).** Slots come only from the mentor's saved Saturday/Sunday availability in **Asia/Kolkata**, at least 2 h ahead, within 4 weeks; stored as UTC. Duration must fit the slot. Transitions: mentor `PENDING→ACCEPTED|REJECTED`, `ACCEPTED→COMPLETED` (after start) `|CANCELLED`; student `PENDING|ACCEPTED→CANCELLED`. Each change is an atomic conditional update. Unique partial indexes give database-level protection: `activeKey` (no duplicate live request per student+mentor+slot) and `slotLock` (no double-booked accepted slot). Accepting a slot closes other pending requests for it with a clear note.
 
-**Recommendations** are deterministic and explainable (not ML): weak quiz topic +5, incomplete roadmap stage +3, missing skill +2, career-goal domain +2, interest +1. Every card shows the reasons.
+**GURUKOOL Mentor Match Engine** (`src/lib/mentor-matching/`): our own deterministic skill-to-mentor matching, with no external AI call. It reads the existing Skill Intelligence outputs (skill-gap analysis, saved assessment weak topics, saved roadmap) without recalculating or changing them:
+
+```
+score = 0.40·weakness + 0.30·roadmap + 0.20·careerGoal + 0.10·availability     (each component normalised to 0–1)
+weakness     = share of the student's assessment weak topics the mentor teaches
+               (no assessment → the student's chosen interests, labelled "interest-based"; results are never invented)
+roadmap      = priority-weighted coverage of incomplete roadmap stages, stage i weighs 1/(i+1)
+               (no roadmap → skill-gap priority list)
+careerGoal   = 1 if the mentor works in the goal's domain, else share of the goal's top-5 required skills covered
+availability = min(1, open weekend slots in the next 14 days / 2)
+```
+
+It returns mentor id, match score (0–100), the component breakdown, matching skills (student topic → mentor term, with source), a plain-language explanation and the next available slots. Term matching tries direct matches, then synonyms, then shared keywords. The Connect and Learn pages show the score breakdown. A mentor whose only signal is availability is never recommended.
 
 **Video.** "Join Mentorship Session" opens `NEXT_PUBLIC_CONNECT_URL` (the shared collaboration space). No per-session rooms or meeting IDs are created or claimed. If the URL is missing, the UI says video collaboration is not configured.
 
@@ -77,7 +89,7 @@ It exercises discovery filters, availability validation, booking validation, dup
 
 1. Dashboard → career goal **Backend Developer** (skills without Node.js) → Save.
 2. Learn → Analyze skills → Generate & submit assessment → Generate roadmap.
-3. Scroll to **Learn from an Industry Expert**: Demo Backend Mentor is recommended with the reason. Click **Find an Industry Mentor**.
+3. Scroll to **Get Help from an Industry Expert**: the Mentor Match Engine recommends Demo Backend Mentor, with its % score breakdown and reason. Click **Book Session**.
 4. Connect → open the mentor → pick a topic, a Saturday/Sunday slot, write a message → **Request Session** → My Sessions shows **PENDING**.
 5. Sidebar persona → **Demo Backend Mentor** → Mentor Dashboard → **Accept**.
 6. Persona → back to the student → My Sessions shows **ACCEPTED** → **Join Mentorship Session**.
@@ -96,7 +108,8 @@ src/app/            pages: / learn build connect (+ mentor, mentors/[id]) compet
 src/app/api/        student (+ visibility), status, chat, learn/*, compete/hackathons, persona,
                     mentors (+ [id], recommendations), mentor-sessions (+ [id]),
                     recruiters/students, recruiter-interests (+ [id])
-src/lib/            db, ai, careers, questionBank, persona, slots, mentors, recommend, sessions, seed
+src/lib/            db, ai, careers, questionBank, persona, slots, mentors, recommend (adapter), sessions, seed
+src/lib/mentor-matching/  GURUKOOL Mentor Match Engine (index.ts scoring, match.ts term matching)
 src/models/         index.ts (Student, Assessment, Roadmap), connect.ts (Mentor, MentorSession, Recruiter, RecruiterInterest)
 src/components/     Sidebar, PersonaSwitcher, connect, MentorRecommendations, RecruiterPanel, ui, sandboxRunner
 scripts/            e2e-connect.mjs (end-to-end CONNECT test against a running server)

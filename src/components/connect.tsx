@@ -66,7 +66,7 @@ export function JoinSessionButton() {
   );
 }
 
-export function MentorCard({ m, reason }: { m: Mentor; reason?: string[] }) {
+export function MentorCard({ m, reason, extra }: { m: Mentor; reason?: string[]; extra?: React.ReactNode }) {
   return (
     <div className="card flex flex-col">
       <div className="flex items-start justify-between gap-2">
@@ -77,10 +77,11 @@ export function MentorCard({ m, reason }: { m: Mentor; reason?: string[] }) {
         <ProfileBadge isDemo={m.isDemo} />
       </div>
       <p className="mt-2 text-sm text-slate-500">{m.designation} · {m.organization} · {m.yearsOfExperience} yrs experience</p>
+      {m.bio && <p className="mt-2 line-clamp-3 text-sm text-slate-600">{m.bio}</p>}
       {reason && reason.length > 0 && (
-        <div className="mt-3 rounded-lg border border-blue-100 bg-blue-50 px-3 py-2 text-sm text-blue-900">
-          <div className="text-xs font-semibold uppercase tracking-wide text-blue-700">Recommended because</div>
-          <ul className="mt-1 list-disc space-y-0.5 pl-4">{reason.map((r) => <li key={r}>{r}</li>)}</ul>
+        <div className="mt-3 space-y-2 rounded-lg border border-blue-100 bg-blue-50 px-3 py-2 text-sm text-blue-900">
+          {reason.map((r) => <p key={r}>{r}</p>)}
+          {extra}
         </div>
       )}
       <div className="mt-3"><div className="label">Expertise</div>
