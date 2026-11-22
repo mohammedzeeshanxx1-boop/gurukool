@@ -18,7 +18,7 @@ export function usePersona() {
     window.addEventListener("gk-account-updated", reload);
     return () => window.removeEventListener("gk-account-updated", reload);
   }, [reload]);
-  return { info, role: info?.persona.role, id: info?.persona.id, error, reload };
+  return { info, role: info?.persona?.role, id: info?.persona?.id, error, reload };
 }
 
 export async function switchPersona(role: string, id: string) {
