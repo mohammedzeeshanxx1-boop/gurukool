@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { Alert, ErrorAlert, PageHeader, Spinner, api, toErr, useStudent, type ApiErr } from "@/components/ui";
 import { CAREER_GOALS } from "@/lib/careers";
 import RecommendedTraining from "@/components/RecommendedTraining";
+import AdaptiveProfile from "@/components/AdaptiveProfile";
 
 type Gap = {
   analysis: { goal: string; existing: string[]; missing: string[]; priorities: { skill: string; level: string }[]; readiness: number };
@@ -194,6 +195,9 @@ export default function LearnPage() {
           </div>
         )}
       </section>
+
+      {/* ── Adaptive skill profile: IRT + knowledge tracing + retention ── */}
+      {student && <AdaptiveProfile goal={goal} refreshKey={`${result?.score ?? ""}|${roadmap?._id ?? ""}`} />}
 
       {/* ── 2. QUIZ ── */}
       <section className="card sm:p-8">
