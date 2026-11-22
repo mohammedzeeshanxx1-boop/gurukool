@@ -35,27 +35,28 @@ export function useStudent() {
   return { student, setStudent, loading, error, reload };
 }
 
-export function PageHeader({ title, subtitle, right }: { title: string; subtitle?: string; right?: React.ReactNode }) {
+export function PageHeader({ title, subtitle, right, eyebrow }: { title: string; subtitle?: string; right?: React.ReactNode; eyebrow?: string }) {
   return (
-    <div className="mb-6 flex flex-wrap items-start justify-between gap-4 pb-5" style={{borderBottom:"1px solid #2a2a2a"}}>
+    <div className="mb-8 flex flex-wrap items-end justify-between gap-4">
       <div>
-        <h1 className="text-xl font-bold tracking-tight" style={{ color: "#e8e2d9" }}>{title}</h1>
-        {subtitle && <p className="mt-1 text-[13px] leading-relaxed max-w-xl" style={{color:"#9a9490"}}>{subtitle}</p>}
+        {eyebrow && <p className="eyebrow mb-2">{eyebrow}</p>}
+        <h1 className="font-display text-3xl font-bold leading-tight tracking-tight text-[#16181d] sm:text-4xl">{title}</h1>
+        {subtitle && <p className="mt-2 max-w-2xl text-[15px] leading-relaxed text-[#3d4250]">{subtitle}</p>}
       </div>
-      {right && <div className="flex items-center gap-2 pt-0.5">{right}</div>}
+      {right && <div className="flex items-center gap-2">{right}</div>}
     </div>
   );
 }
 
 export function Alert({ kind = "info", children }: { kind?: "info" | "warn" | "error" | "success"; children: React.ReactNode }) {
   const cls = {
-    info:    "border-[#3a3a3a] bg-[#2a2a2a] text-[#9a9490]",
-    warn:    "border-amber-900 bg-amber-950 text-amber-400",
-    error:   "border-red-900 bg-red-950 text-red-400",
-    success: "border-emerald-900 bg-emerald-950 text-emerald-400",
+    info:    "bg-white border-[#e3e5e9] text-[#3d4250]",
+    warn:    "bg-[#fdf0cf] border-[#f3dc9f] text-[#7a4508]",
+    error:   "bg-[#fde7ea] border-[#f6c4cb] text-[#9b1c2e]",
+    success: "bg-[#e1f5e3] border-[#bfe6c4] text-[#0b5e2e]",
   }[kind];
   return (
-    <div className={`flex items-start gap-2.5 rounded-lg border px-4 py-3 text-sm ${cls}`}>
+    <div className={`flex items-start gap-2.5 rounded-xl border px-4 py-3 text-sm ${cls}`}>
       <div>{children}</div>
     </div>
   );
@@ -66,13 +67,13 @@ export function ErrorAlert({ err }: { err: ApiErr | null }) {
   if (err.code === "DB_NOT_CONFIGURED")
     return (
       <Alert kind="warn">
-        <b>MongoDB not configured.</b> Add <code className="rounded bg-amber-100 px-1">MONGODB_URI</code> to <code className="rounded bg-amber-100 px-1">.env.local</code> and restart.
+        <b>MongoDB not configured.</b> Add <code className="rounded bg-white/60 px-1">MONGODB_URI</code> to <code className="rounded bg-white/60 px-1">.env.local</code> and restart.
       </Alert>
     );
   if (err.code === "AI_NOT_CONFIGURED")
     return (
       <Alert kind="warn">
-        <b>AI not configured.</b> Add <code className="rounded bg-amber-100 px-1">AI_API_KEY</code>, <code className="rounded bg-amber-100 px-1">AI_MODEL</code> and <code className="rounded bg-amber-100 px-1">AI_BASE_URL</code> to <code className="rounded bg-amber-100 px-1">.env.local</code>.
+        <b>AI not configured.</b> Add <code className="rounded bg-white/60 px-1">AI_API_KEY</code>, <code className="rounded bg-white/60 px-1">AI_MODEL</code> and <code className="rounded bg-white/60 px-1">AI_BASE_URL</code> to <code className="rounded bg-white/60 px-1">.env.local</code>.
       </Alert>
     );
   return <Alert kind="error">{err.error}</Alert>;
@@ -94,9 +95,9 @@ export function Spinner() {
 export function StatCard({ label, value, sub }: { label: string; value: string | number; sub?: string; color?: string }) {
   return (
     <div className="card">
-      <div className="text-xs text-zinc-500">{label}</div>
-      <div className="mt-2 text-3xl font-semibold tabular-nums text-zinc-900">{value}</div>
-      {sub && <div className="mt-1 text-xs text-zinc-400">{sub}</div>}
+      <div className="text-[13px] font-medium text-[#5f6573]">{label}</div>
+      <div className="mt-2 font-display text-3xl font-bold tabular-nums text-[#16181d]">{value}</div>
+      {sub && <div className="mt-1 text-xs text-[#5f6573]">{sub}</div>}
     </div>
   );
 }

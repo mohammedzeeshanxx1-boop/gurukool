@@ -17,7 +17,7 @@ export async function POST(_req: Request, ctx: { params: Promise<{ id: string }>
     await connectDB();
     const c = await loadCourse(id);
     if (!c || !c.published) return notFound("Course not found");
-    if (!(await Student.exists({ key: p.id }))) return badRequest("Save your student profile on the Dashboard first.");
+    if (!(await Student.exists({ key: p.id }))) return badRequest("Save your student profile on the My Profile page first.");
     try {
       const e = await TrainingEnrollment.create({ studentId: p.id, courseId: c._id, completedLessonIds: [] });
       const st = await Student.findOne({ key: p.id }).select("name").lean<{ name: string }>();

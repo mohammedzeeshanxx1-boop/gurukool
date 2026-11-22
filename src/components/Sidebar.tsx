@@ -3,6 +3,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useState } from "react";
 import PersonaSwitcher from "./PersonaSwitcher";
+import Logo from "./Logo";
 import { usePersona } from "./connect";
 
 type R = "student" | "mentor" | "recruiter" | "admin";
@@ -53,6 +54,11 @@ const ICONS: Record<string, React.ReactNode> = {
       <path d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/>
     </svg>
   ),
+  profile: (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.75} className="h-[18px] w-[18px]">
+      <circle cx="12" cy="8" r="4"/><path d="M4 21v-1a7 7 0 0114 0v1"/>
+    </svg>
+  ),
   sub: (
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.75} className="h-[16px] w-[16px]">
       <path d="M3.75 6.75h16.5M3.75 12h16.5m-16.5 5.25H12"/>
@@ -62,6 +68,7 @@ const ICONS: Record<string, React.ReactNode> = {
 
 const NAV: { href: string; label: string; iconKey: string; sub?: boolean; roles: R[] }[] = [
   { href: "/",               label: "Dashboard",        iconKey: "dashboard", roles: ["student"] },
+  { href: "/profile",        label: "My Profile",       iconKey: "profile",   roles: ["student"] },
   { href: "/learn",          label: "Learn",            iconKey: "learn",     roles: ["student"] },
   { href: "/train",          label: "Upskill",          iconKey: "train",     roles: ["student", "mentor"] },
   { href: "/build",          label: "CodeLab",          iconKey: "build",     roles: ["student"] },
@@ -80,7 +87,7 @@ const isActive = (path: string, href: string) =>
 function NavLinks({ role, onClose }: { role: string | undefined; onClose?: () => void }) {
   const path = usePathname();
   return (
-    <nav className="flex flex-col gap-0.5 px-3">
+    <nav className="flex flex-col gap-1 px-3">
       {NAV.filter((n) => role && n.roles.includes(role as R)).map((n) => {
         const active = isActive(path, n.href);
         return (
@@ -88,17 +95,12 @@ function NavLinks({ role, onClose }: { role: string | undefined; onClose?: () =>
             key={n.href}
             href={n.href}
             onClick={onClose}
-            className={`group flex items-center gap-2.5 rounded-lg transition-colors duration-150
-              ${n.sub ? "ml-5 py-1.5 px-2.5 text-xs" : "py-2 px-3 text-[13px] font-medium"}
-              ${active
-                ? "border-l-2 pl-[10px] font-semibold"
-                : "border-l-2 border-transparent pl-[10px]"
-              }`}
-            style={active ? {background:"rgba(217,84,30,0.15)",color:"#D9541E",borderColor:"#D9541E"} : {color:"#9a9490"}}
-            onMouseEnter={e=>{ if(!active){(e.currentTarget as HTMLElement).style.background="rgba(255,255,255,0.07)";(e.currentTarget as HTMLElement).style.color="#fff";} }}
-            onMouseLeave={e=>{ if(!active){(e.currentTarget as HTMLElement).style.background="";(e.currentTarget as HTMLElement).style.color="#9a9490";} }}
+            className={`group flex items-center gap-3 rounded-xl transition-colors duration-150
+              ${n.sub ? "ml-6 px-3 py-1.5 text-[13px]" : "px-3 py-2.5 text-[15px] font-medium"}
+              ${active ? "bg-[#fbe9e1] font-semibold text-[#D9541E]" : "text-[#3d4250] hover:bg-[#f0f1f3] hover:text-[#16181d]"}`}
+            style={{ fontFamily: "'Outfit', 'Inter', sans-serif" }}
           >
-            <span className={`flex-shrink-0 transition-opacity duration-150 ${active ? "opacity-100" : "opacity-60 group-hover:opacity-100"}`}>
+            <span className={`flex-shrink-0 ${active ? "text-[#D9541E]" : "text-[#5f6573] group-hover:text-[#16181d]"}`}>
               {ICONS[n.iconKey]}
             </span>
             <span>{n.label}</span>
@@ -118,10 +120,10 @@ export default function Sidebar() {
   return (
     <>
       {/* Mobile top bar */}
-      <header className="no-print sticky top-0 z-30 flex items-center justify-between px-4 py-2 md:hidden" style={{background:"#111111",borderBottom:"1px solid #2a2a2a"}}>
-        <img src="/udaan-logo-dark.png" alt="UDAAN" style={{width:"120px",height:"36px"}} className="object-contain" />
+      <header className="no-print sticky top-0 z-30 flex h-16 items-center justify-between border-b border-[#e3e5e9] bg-white px-4 md:hidden">
+        <Link href="/"><Logo size={30} /></Link>
         <button
-          className="rounded-lg p-1.5 transition-colors" style={{color:"#a89e94"}} onMouseEnter={e=>(e.currentTarget.style.background="#2a2a2a",e.currentTarget.style.color="#fff")} onMouseLeave={e=>(e.currentTarget.style.background="",e.currentTarget.style.color="#a89e94")}
+          className="rounded-lg p-2 text-[#5f6573] transition-colors hover:bg-[#f0f1f3] hover:text-[#16181d]"
           onClick={() => setOpen(!open)}
           aria-label="Toggle menu"
         >
@@ -136,27 +138,27 @@ export default function Sidebar() {
 
       {/* Mobile dropdown */}
       {open && (
-        <div className="no-print z-20 pb-4 md:hidden" style={{background:"#111111",borderBottom:"1px solid #2a2a2a"}}>
+        <div className="no-print z-20 border-b border-[#e3e5e9] bg-white pb-4 md:hidden">
           <div className="py-2">
             <NavLinks role={role} onClose={() => setOpen(false)} />
           </div>
-          <div className="mt-2 px-3 pt-4" style={{borderTop:"1px solid #2a2a2a"}}>
+          <div className="mt-2 border-t border-[#e3e5e9] px-3 pt-4">
             <PersonaSwitcher />
           </div>
         </div>
       )}
 
       {/* Desktop sidebar */}
-      <aside className="no-print sticky top-0 hidden h-screen w-[240px] shrink-0 flex-col overflow-y-auto md:flex" style={{background:"#111111",borderRight:"1px solid #2a2a2a"}}>
-        <div className="flex items-center justify-center px-5 py-4" style={{borderBottom:"1px solid #2a2a2a"}}>
-          <img src="/udaan-logo-dark.png" alt="UDAAN" style={{width:"140px",height:"42px"}} className="object-contain" />
+      <aside className="no-print sticky top-0 hidden h-screen w-[248px] shrink-0 flex-col overflow-y-auto border-r border-[#e3e5e9] bg-white md:flex">
+        <div className="flex h-[72px] items-center border-b border-[#e3e5e9] px-6">
+          <Link href="/"><Logo size={32} /></Link>
         </div>
 
         <div className="flex-1 overflow-y-auto py-3">
           <NavLinks role={role} />
         </div>
 
-        <div className="p-3" style={{borderTop:"1px solid #2a2a2a"}}>
+        <div className="border-t border-[#e3e5e9] p-3">
           <PersonaSwitcher />
         </div>
       </aside>

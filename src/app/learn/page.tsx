@@ -115,7 +115,7 @@ export default function LearnPage() {
       />
       <ErrorAlert err={error} />
       {!error && !student && (
-        <Alert kind="warn">No student profile yet. <Link className="font-semibold underline" href="/">Save your profile on the Dashboard</Link> first.</Alert>
+        <Alert kind="warn">No student profile yet. <Link className="font-semibold underline" href="/profile">Set up your profile</Link> first.</Alert>
       )}
 
       {/* 1 — SKILL GAP */}

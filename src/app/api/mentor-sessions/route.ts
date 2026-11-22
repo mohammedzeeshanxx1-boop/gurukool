@@ -60,7 +60,7 @@ export async function POST(req: Request) {
     await connectDB();
     await ensureSeed();
     const student = await Student.findOne({ key: p.id }).lean();
-    if (!student) return badRequest("Save your student profile on the Dashboard first.");
+    if (!student) return badRequest("Save your student profile on the My Profile page first.");
     await syncMentorVerification();
     const mentor = (await Mentor.findById(b.mentorId).lean()) as MentorT | null;
     const bookable = mentor && mentor.profileStatus === "active" && ((mentor as { verified?: boolean }).verified || (showDemoData() && mentor.isDemo));

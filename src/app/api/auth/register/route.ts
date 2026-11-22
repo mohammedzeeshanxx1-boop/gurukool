@@ -38,7 +38,7 @@ export async function POST(req: Request) {
     const uid = new mongoose.Types.ObjectId();
     let profileId = "";
     let role: "student" | "mentor" | "recruiter" = "student";
-    if (portal === "student") profileId = `u-${uid}`; // Student profile is created when they save it on the Dashboard
+    if (portal === "student") profileId = `u-${uid}`; // Student profile is created when they save it on the My Profile page
     if (portal === "expert") {
       role = "mentor";
       const m = await Mentor.create({
