@@ -1,143 +1,37 @@
 "use client";
 import Link from "next/link";
-import { Suspense, useCallback, useEffect, useMemo, useState } from "react";
+import { Suspense, useCallback, useEffect, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { Alert, ErrorAlert, PageHeader, Spinner, api, toErr, type ApiErr } from "@/components/ui";
+import { Avatar, ConnectionAction, I, Icon, type Conn, type PeerCard } from "@/components/peers";
 
 // ── Types ────────────────────────────────────────────────────────────────────
-type Peer = {
-  id: string; name: string; college: string; branch: string; semester: number;
-  skills: string[]; interests: string[]; careerGoal: string; score: number; reasons: string[];
-};
+type Peer = PeerCard & { score: number; reasons: string[]; connection: Conn };
+type NetRow = { id: string; peer: PeerCard; message: string; since: string };
+type Network = { connections: NetRow[]; received: NetRow[]; sent: NetRow[] };
 type PeerSession = {
-  id: string; direction: "sent" | "received"; with: { id: string; name: string };
+  id: string; direction: "sent" | "received"; with: { id: string; name: string }; kind: "study" | "explain";
   topic: string; message: string; startAt: string; endAt: string; when: string; durationMinutes: number;
   status: "PENDING" | "ACCEPTED" | "DECLINED" | "CANCELLED"; roomCode: string | null; canJoin: boolean;
 };
 type MeetingRecord = { _id: string; meetingCode: string; date: string };
 
 const TABS = [
-  { id: "students", label: "Find Students" },
-  { id: "sessions", label: "My Sessions" },
+  { id: "discover", label: "Discover" },
+  { id: "network", label: "My Network" },
+  { id: "sessions", label: "Sessions" },
   { id: "meetings", label: "Meetings" },
 ] as const;
 type TabId = (typeof TABS)[number]["id"];
 
-const DURATIONS = [30, 45, 60, 90];
-const initials = (n: string) => n.split(" ").map((w) => w[0]).filter(Boolean).slice(0, 2).join("").toUpperCase() || "?";
-const AVATAR = ["#D9541E", "#2c303b", "#0b7a39", "#1570ef", "#a85a0c"];
-const avatarBg = (id: string) => AVATAR[[...id].reduce((a, c) => a + c.charCodeAt(0), 0) % AVATAR.length];
+const profileHref = (id: string) => `/connect/people/${encodeURIComponent(id)}`;
+const sharedSkill = (reasons: string[]) => reasons.find((r) => r.startsWith("Shared skills"))?.replace("Shared skills: ", "").split(",")[0]?.trim();
 
-function Avatar({ id, name, size = 48 }: { id: string; name: string; size?: number }) {
-  return (
-    <span className="flex shrink-0 items-center justify-center rounded-2xl font-display font-bold text-white"
-      style={{ width: size, height: size, background: avatarBg(id), fontSize: size * 0.36 }}>{initials(name)}</span>
-  );
-}
-
-function Icon({ d, size = 18 }: { d: string; size?: number }) {
-  return <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d={d} /></svg>;
-}
-const I = {
-  search: "M11 19a8 8 0 1 0 0-16 8 8 0 0 0 0 16zM21 21l-4.35-4.35",
-  video: "M23 7l-7 5 7 5V7zM14 5H3a2 2 0 0 0-2 2v10a2 2 0 0 0 2 2h11a2 2 0 0 0 2-2V7a2 2 0 0 0-2-2z",
-  cal: "M19 4H5a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6a2 2 0 0 0-2-2zM16 2v4M8 2v4M3 10h18",
-  close: "M18 6 6 18M6 6l12 12",
-  check: "M20 6 9 17l-5-5",
-};
-
-// ── Book a session modal ─────────────────────────────────────────────────────
-function pad(n: number) { return String(n).padStart(2, "0"); }
-function defaultSlot() {
-  // Next whole hour at least 1 hour from now, in the browser's local time.
-  const d = new Date(Date.now() + 60 * 60 * 1000);
-  d.setMinutes(0, 0, 0); d.setHours(d.getHours() + 1);
-  return { date: `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`, time: `${pad(d.getHours())}:00` };
-}
-
-function BookModal({ peer, onClose, onBooked }: { peer: Peer; onClose: () => void; onBooked: () => void }) {
-  const slot = useMemo(defaultSlot, []);
-  const suggested = peer.reasons.find((r) => r.startsWith("Shared skills"))?.replace("Shared skills: ", "").split(",")[0]?.trim();
-  const [f, setF] = useState({ topic: suggested ? `${suggested} study session` : "", date: slot.date, time: slot.time, durationMinutes: 60, message: "" });
-  const [busy, setBusy] = useState(false);
-  const [err, setErr] = useState<ApiErr | null>(null);
-  const [done, setDone] = useState(false);
-  const today = new Date();
-  const minDate = `${today.getFullYear()}-${pad(today.getMonth() + 1)}-${pad(today.getDate())}`;
-
-  async function submit(e: React.FormEvent) {
-    e.preventDefault();
-    setBusy(true); setErr(null);
-    try {
-      const startAt = new Date(`${f.date}T${f.time}`);
-      await api("/api/peer-sessions", { method: "POST", body: JSON.stringify({ peerKey: peer.id, topic: f.topic, message: f.message, durationMinutes: f.durationMinutes, startAt: startAt.toISOString() }) });
-      setDone(true);
-      onBooked();
-    } catch (x) { setErr(toErr(x)); } finally { setBusy(false); }
-  }
-
-  return (
-    <div className="fixed inset-0 z-50 !m-0 flex items-center justify-center bg-[#16181d]/50 p-4 backdrop-blur-sm" role="dialog" aria-modal="true" aria-label={`Book a session with ${peer.name}`}>
-      <div className="w-full max-w-lg overflow-hidden rounded-3xl bg-white shadow-2xl">
-        <div className="flex items-center justify-between gap-4 bg-[#2c303b] px-7 py-5 text-white">
-          <div className="flex items-center gap-4">
-            <span className="rounded-2xl ring-2 ring-white/25"><Avatar id={peer.id} name={peer.name} size={44} /></span>
-            <div>
-              <p className="text-xs font-semibold uppercase tracking-[0.14em] text-[#f29a6b]">Book a study session</p>
-              <p className="font-display text-xl font-bold">{peer.name}</p>
-            </div>
-          </div>
-          <button onClick={onClose} aria-label="Close" className="rounded-lg p-1.5 text-white/60 hover:bg-white/10 hover:text-white"><Icon d={I.close} size={20} /></button>
-        </div>
-
-        {done ? (
-          <div className="space-y-4 px-7 py-10 text-center">
-            <span className="mx-auto flex h-14 w-14 items-center justify-center rounded-full bg-[#e1f5e3] text-[#0b7a39]"><Icon d={I.check} size={28} /></span>
-            <p className="font-display text-2xl font-bold text-[#16181d]">Request sent</p>
-            <p className="text-[15px] text-[#3d4250]">{peer.name} will get a notification. Once they accept, a private meeting room appears in <b>My Sessions</b>.</p>
-            <button onClick={onClose} className="btn-primary mt-2 px-8">Done</button>
-          </div>
-        ) : (
-          <form onSubmit={submit} className="space-y-4 px-7 py-6">
-            <div><label className="label" htmlFor="bk-topic">What do you want to work on?</label>
-              <input id="bk-topic" className="input" placeholder="e.g. DSA practice, React project help" value={f.topic} onChange={(e) => setF({ ...f, topic: e.target.value })} required minLength={3} maxLength={120} /></div>
-            <div className="grid grid-cols-2 gap-3">
-              <div><label className="label" htmlFor="bk-date">Date</label>
-                <input id="bk-date" type="date" className="input" min={minDate} value={f.date} onChange={(e) => setF({ ...f, date: e.target.value })} required /></div>
-              <div><label className="label" htmlFor="bk-time">Time</label>
-                <input id="bk-time" type="time" className="input" value={f.time} onChange={(e) => setF({ ...f, time: e.target.value })} required /></div>
-            </div>
-            <div>
-              <span className="label">Duration</span>
-              <div className="flex gap-2">
-                {DURATIONS.map((d) => (
-                  <button type="button" key={d} onClick={() => setF({ ...f, durationMinutes: d })}
-                    className={`flex-1 rounded-xl py-2.5 font-display text-sm font-semibold transition-colors ${f.durationMinutes === d ? "bg-[#2c303b] text-white" : "bg-[#f0f1f3] text-[#2c303b] hover:bg-[#e4e6ea]"}`}>
-                    {d} min
-                  </button>
-                ))}
-              </div>
-            </div>
-            <div><label className="label" htmlFor="bk-msg">Message <span className="font-normal text-[#8a909c]">(optional)</span></label>
-              <textarea id="bk-msg" className="input" rows={3} maxLength={500} placeholder="Say hi and what you'd like to cover…" value={f.message} onChange={(e) => setF({ ...f, message: e.target.value })} /></div>
-            <ErrorAlert err={err} />
-            <div className="flex gap-3 pt-1">
-              <button type="button" onClick={onClose} className="btn-ghost flex-1">Cancel</button>
-              <button type="submit" disabled={busy} className="btn-primary flex-1">{busy && <Spinner />} Send Request</button>
-            </div>
-          </form>
-        )}
-      </div>
-    </div>
-  );
-}
-
-// ── Find Students tab ────────────────────────────────────────────────────────
-function FindStudents({ onBooked }: { onBooked: () => void }) {
+// ── Discover tab ─────────────────────────────────────────────────────────────
+function Discover({ onChanged }: { onChanged: () => void }) {
   const [q, setQ] = useState("");
   const [data, setData] = useState<{ needsProfile: boolean; peers: Peer[] } | null>(null);
   const [err, setErr] = useState<ApiErr | null>(null);
-  const [booking, setBooking] = useState<Peer | null>(null);
 
   const load = useCallback((query: string) => {
     api<{ needsProfile: boolean; peers: Peer[] }>(`/api/peers${query ? `?q=${encodeURIComponent(query)}` : ""}`)
@@ -145,16 +39,17 @@ function FindStudents({ onBooked }: { onBooked: () => void }) {
       .catch((e) => setErr(toErr(e)));
   }, []);
   useEffect(() => { const t = setTimeout(() => load(q.trim()), 250); return () => clearTimeout(t); }, [q, load]);
+  const refresh = () => { load(q.trim()); onChanged(); };
 
   if (data?.needsProfile) {
-    return <Alert kind="warn"><b>Set up your profile first.</b> We use your goal, skills and interests to find students to study with. <Link href="/profile" className="font-semibold underline">Go to My Profile &rarr;</Link></Alert>;
+    return <Alert kind="warn"><b>Set up your profile first.</b> Other students see your profile when you connect. <Link href="/profile" className="font-semibold underline">Go to My Profile &rarr;</Link></Alert>;
   }
 
   return (
     <div className="space-y-6">
       <label className="flex max-w-2xl items-center gap-3 rounded-full border-[1.5px] border-[#d5d8de] bg-white px-5 py-3 transition-[border-color,box-shadow] focus-within:border-[#D9541E] focus-within:shadow-[0_0_0_3px_rgba(217,84,30,0.12)]">
         <span className="text-[#5f6573]"><Icon d={I.search} size={20} /></span>
-        <input className="w-full bg-transparent text-[15px] text-[#16181d] outline-none placeholder:text-[#8a909c]" placeholder="Search by name, college, skill or goal…" value={q} onChange={(e) => setQ(e.target.value)} aria-label="Search students" />
+        <input className="w-full bg-transparent text-[15px] text-[#16181d] outline-none placeholder:text-[#8a909c]" placeholder="Search students by name, college, skill or goal…" value={q} onChange={(e) => setQ(e.target.value)} aria-label="Search students" />
       </label>
 
       <ErrorAlert err={err} />
@@ -168,40 +63,89 @@ function FindStudents({ onBooked }: { onBooked: () => void }) {
 
       {data && data.peers.length > 0 && (
         <>
-          <p className="eyebrow">{q ? `${data.peers.length} result${data.peers.length === 1 ? "" : "s"}` : "Best matches for you"}</p>
+          <p className="eyebrow">{q ? `${data.peers.length} result${data.peers.length === 1 ? "" : "s"}` : "People you may know"}</p>
           <div className="grid gap-5 md:grid-cols-2 xl:grid-cols-3">
             {data.peers.map((p) => (
-              <div key={p.id} className="card flex flex-col p-6 transition-shadow hover:shadow-md">
-                <div className="flex items-start gap-4">
-                  <Avatar id={p.id} name={p.name} />
-                  <div className="min-w-0">
-                    <h3 className="truncate font-display text-lg font-bold text-[#16181d]">{p.name}</h3>
-                    <p className="truncate text-sm text-[#5f6573]">{p.college}</p>
-                    <p className="text-sm text-[#5f6573]">{p.branch} · Sem {p.semester}</p>
+              <div key={p.id} className="card flex flex-col overflow-hidden p-0 transition-shadow hover:shadow-md">
+                <div className="h-14 bg-[#2c303b]" style={{ backgroundImage: "radial-gradient(rgba(255,255,255,0.12) 1px, transparent 1px)", backgroundSize: "14px 14px" }} />
+                <div className="-mt-8 flex flex-1 flex-col px-6 pb-6">
+                  <Link href={profileHref(p.id)} className="w-fit"><Avatar id={p.id} name={p.name} size={64} ring /></Link>
+                  <Link href={profileHref(p.id)} className="mt-3 font-display text-lg font-bold text-[#16181d] hover:text-[#D9541E]">{p.name}</Link>
+                  <p className="line-clamp-2 text-sm text-[#3d4250]">{p.headline || `${p.branch} student · Semester ${p.semester}`}</p>
+                  <p className="mt-1 truncate text-[13px] text-[#5f6573]">{p.college}</p>
+                  {p.reasons.length > 0 && (
+                    <div className="mt-3 flex flex-wrap gap-1.5">
+                      {p.reasons.slice(0, 2).map((r) => <span key={r} className="chip bg-[#fbe9e1] text-[#b3401a]">{r}</span>)}
+                    </div>
+                  )}
+                  {p.skills.length > 0 && (
+                    <div className="mt-3 flex flex-wrap gap-1.5">
+                      {p.skills.slice(0, 4).map((s) => <span key={s} className="chip bg-[#f0f1f3] text-[#3d4250]">{s}</span>)}
+                      {p.skills.length > 4 && <span className="chip text-[#8a909c]">+{p.skills.length - 4}</span>}
+                    </div>
+                  )}
+                  <div className="mt-auto grid grid-cols-[auto_1fr] gap-2 pt-5">
+                    <Link href={profileHref(p.id)} className="btn-ghost">Profile</Link>
+                    <ConnectionAction peer={p} conn={p.connection} onChanged={refresh} full suggestedTopic={sharedSkill(p.reasons)} />
                   </div>
-                </div>
-                <p className="mt-4 text-sm"><span className="text-[#5f6573]">Goal:</span> <span className="font-medium text-[#16181d]">{p.careerGoal}</span></p>
-                {p.reasons.length > 0 && (
-                  <div className="mt-3 flex flex-wrap gap-1.5">
-                    {p.reasons.slice(0, 2).map((r) => <span key={r} className="chip bg-[#fbe9e1] text-[#b3401a]">{r}</span>)}
-                  </div>
-                )}
-                {p.skills.length > 0 && (
-                  <div className="mt-3 flex flex-wrap gap-1.5">
-                    {p.skills.slice(0, 5).map((s) => <span key={s} className="chip bg-[#f0f1f3] text-[#3d4250]">{s}</span>)}
-                    {p.skills.length > 5 && <span className="chip text-[#8a909c]">+{p.skills.length - 5}</span>}
-                  </div>
-                )}
-                <div className="mt-auto pt-5">
-                  <button onClick={() => setBooking(p)} className="btn-dark w-full"><Icon d={I.cal} size={16} /> Book a Session</button>
                 </div>
               </div>
             ))}
           </div>
         </>
       )}
+    </div>
+  );
+}
 
-      {booking && <BookModal peer={booking} onClose={() => setBooking(null)} onBooked={onBooked} />}
+// ── My Network tab ───────────────────────────────────────────────────────────
+function MyNetwork({ refreshKey, onChanged }: { refreshKey: number; onChanged: () => void }) {
+  const [net, setNet] = useState<Network | null>(null);
+  const [err, setErr] = useState<ApiErr | null>(null);
+  const load = useCallback(() => { api<Network>("/api/connections").then((d) => { setNet(d); setErr(null); }).catch((e) => setErr(toErr(e))); }, []);
+  useEffect(() => { load(); }, [load, refreshKey]);
+  const changed = () => { load(); onChanged(); };
+
+  if (!net) return err ? <ErrorAlert err={err} /> : <div className="text-sm text-[#5f6573]"><Spinner /> Loading your network…</div>;
+
+  const Person = ({ r, conn, note }: { r: NetRow; conn: Conn; note?: boolean }) => (
+    <div className="flex flex-col gap-4 rounded-2xl border border-[#e3e5e9] bg-white p-5 sm:flex-row sm:items-center">
+      <Link href={profileHref(r.peer.id)}><Avatar id={r.peer.id} name={r.peer.name} size={52} /></Link>
+      <div className="min-w-0 flex-1">
+        <Link href={profileHref(r.peer.id)} className="font-display text-[17px] font-bold text-[#16181d] hover:text-[#D9541E]">{r.peer.name}</Link>
+        <p className="truncate text-sm text-[#3d4250]">{r.peer.headline || `${r.peer.branch} · ${r.peer.college}`}</p>
+        <p className="text-[13px] text-[#5f6573]">Goal: {r.peer.careerGoal}</p>
+        {note && r.message && <p className="mt-2 rounded-xl bg-[#f4f5f7] px-3 py-2 text-sm italic text-[#3d4250]">&ldquo;{r.message}&rdquo;</p>}
+      </div>
+      <div className="flex shrink-0 gap-2 sm:w-auto">
+        <Link href={profileHref(r.peer.id)} className="btn-ghost">Profile</Link>
+        <ConnectionAction peer={r.peer} conn={conn} onChanged={changed} />
+      </div>
+    </div>
+  );
+
+  return (
+    <div className="space-y-8">
+      <ErrorAlert err={err} />
+      {net.received.length > 0 && (
+        <section>
+          <h2 className="h2 mb-3">Invitations <span className="ml-1 font-sans text-sm font-medium text-[#8a909c]">{net.received.length}</span></h2>
+          <div className="space-y-3">{net.received.map((r) => <Person key={r.id} r={r} conn={{ status: "received", id: r.id }} note />)}</div>
+        </section>
+      )}
+      <section>
+        <h2 className="h2 mb-3">Connections <span className="ml-1 font-sans text-sm font-medium text-[#8a909c]">{net.connections.length}</span></h2>
+        {net.connections.length
+          ? <div className="space-y-3">{net.connections.map((r) => <Person key={r.id} r={r} conn={{ status: "connected", id: r.id }} />)}</div>
+          : <p className="rounded-2xl border border-dashed border-[#cfd2d8] bg-white/60 p-5 text-sm text-[#5f6573]">No connections yet. Go to <b>Discover</b> and connect with students who share your goals.</p>}
+      </section>
+      {net.sent.length > 0 && (
+        <section>
+          <h2 className="h2 mb-3">Sent invitations <span className="ml-1 font-sans text-sm font-medium text-[#8a909c]">{net.sent.length}</span></h2>
+          <div className="space-y-3">{net.sent.map((r) => <Person key={r.id} r={r} conn={{ status: "sent", id: r.id }} />)}</div>
+          <p className="mt-2 text-xs text-[#8a909c]">Click &ldquo;Pending&rdquo; to withdraw an invitation.</p>
+        </section>
+      )}
     </div>
   );
 }
@@ -216,10 +160,11 @@ function SessionRow({ s, busy, act, join }: { s: PeerSession; busy: boolean; act
       <Avatar id={s.with.id} name={s.with.name} size={44} />
       <div className="min-w-0 flex-1">
         <div className="flex flex-wrap items-center gap-2">
+          <span className="chip bg-[#e4e6ea] text-[#2c303b]">{s.kind === "explain" ? "Explain" : "Study"}</span>
           <span className="font-display text-[17px] font-bold text-[#16181d]">{s.topic}</span>
           <span className={`chip ${tone}`}>{label}</span>
         </div>
-        <p className="mt-0.5 text-sm text-[#3d4250]">{s.direction === "sent" ? "with" : "from"} <b>{s.with.name}</b> · {s.when} · {s.durationMinutes} min</p>
+        <p className="mt-0.5 text-sm text-[#3d4250]">{s.direction === "sent" ? "with" : "from"} <Link href={`/connect/people/${encodeURIComponent(s.with.id)}`} className="font-semibold hover:text-[#D9541E]">{s.with.name}</Link> · {s.when} · {s.durationMinutes} min</p>
         {s.message && <p className="mt-1.5 line-clamp-2 text-sm italic text-[#5f6573]">&ldquo;{s.message}&rdquo;</p>}
       </div>
       <div className="flex shrink-0 flex-wrap gap-2">
@@ -280,7 +225,7 @@ function MySessions({ refreshKey }: { refreshKey: number }) {
     <div className="space-y-8">
       <ErrorAlert err={err} />
       {requests.length > 0 && <Section title="Requests for you" items={requests} />}
-      <Section title="Upcoming sessions" items={upcoming} empty="No confirmed sessions yet. Find a student and book one." />
+      <Section title="Upcoming sessions" items={upcoming} empty="No confirmed sessions yet. Request one from a connection in My Network." />
       {sent.length > 0 && <Section title="Sent requests" items={sent} />}
       {past.length > 0 && (
         <section>
@@ -353,14 +298,16 @@ function Meetings() {
 function ConnectInner() {
   const sp = useSearchParams();
   const router = useRouter();
-  const tab = (TABS.find((t) => t.id === sp.get("tab"))?.id ?? "students") as TabId;
+  const tab = (TABS.find((t) => t.id === sp.get("tab"))?.id ?? "discover") as TabId;
   const [refreshKey, setRefreshKey] = useState(0);
-  const [pending, setPending] = useState(0);
+  const [badges, setBadges] = useState({ network: 0, sessions: 0 });
+  const bump = () => setRefreshKey((k) => k + 1);
 
   useEffect(() => {
-    api<{ sessions: PeerSession[] }>("/api/peer-sessions")
-      .then((d) => setPending(d.sessions.filter((s) => s.status === "PENDING" && s.direction === "received" && new Date(s.startAt).getTime() > Date.now()).length))
-      .catch(() => {});
+    Promise.all([
+      api<Network>("/api/connections").then((d) => d.received.length).catch(() => 0),
+      api<{ sessions: PeerSession[] }>("/api/peer-sessions").then((d) => d.sessions.filter((s) => s.status === "PENDING" && s.direction === "received" && new Date(s.startAt).getTime() > Date.now()).length).catch(() => 0),
+    ]).then(([network, sessions]) => setBadges({ network, sessions }));
   }, [refreshKey, tab]);
 
   return (
@@ -368,21 +315,26 @@ function ConnectInner() {
       <PageHeader
         eyebrow="Learn together"
         title="Connect"
-        subtitle="Find students with the same goals, book a study session, and meet over video once they accept."
+        subtitle="Find students, grow your network, and request sessions to study together or get something explained."
+        right={<Link href="/profile" className="btn-ghost">Edit my profile</Link>}
       />
 
       <div role="tablist" className="mb-8 flex w-fit max-w-full gap-1 overflow-x-auto rounded-full bg-[#e4e6ea] p-1">
-        {TABS.map((t) => (
-          <button key={t.id} role="tab" aria-selected={tab === t.id}
-            onClick={() => router.replace(`/connect?tab=${t.id}`, { scroll: false })}
-            className={`flex items-center gap-2 whitespace-nowrap rounded-full px-5 py-2 font-display text-[15px] font-semibold transition-colors ${tab === t.id ? "bg-[#2c303b] text-white" : "text-[#2c303b] hover:bg-white/60"}`}>
-            {t.label}
-            {t.id === "sessions" && pending > 0 && <span className="flex h-5 min-w-5 items-center justify-center rounded-full bg-[#D9541E] px-1.5 text-[11px] font-bold text-white">{pending}</span>}
-          </button>
-        ))}
+        {TABS.map((t) => {
+          const n = t.id === "network" ? badges.network : t.id === "sessions" ? badges.sessions : 0;
+          return (
+            <button key={t.id} role="tab" aria-selected={tab === t.id}
+              onClick={() => router.replace(`/connect?tab=${t.id}`, { scroll: false })}
+              className={`flex items-center gap-2 whitespace-nowrap rounded-full px-5 py-2 font-display text-[15px] font-semibold transition-colors ${tab === t.id ? "bg-[#2c303b] text-white" : "text-[#2c303b] hover:bg-white/60"}`}>
+              {t.label}
+              {n > 0 && <span className="flex h-5 min-w-5 items-center justify-center rounded-full bg-[#D9541E] px-1.5 text-[11px] font-bold text-white">{n}</span>}
+            </button>
+          );
+        })}
       </div>
 
-      {tab === "students" && <FindStudents onBooked={() => setRefreshKey((k) => k + 1)} />}
+      {tab === "discover" && <Discover onChanged={bump} />}
+      {tab === "network" && <MyNetwork refreshKey={refreshKey} onChanged={bump} />}
       {tab === "sessions" && <MySessions refreshKey={refreshKey} />}
       {tab === "meetings" && <Meetings />}
     </div>

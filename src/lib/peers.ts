@@ -9,7 +9,7 @@ export const JOIN_EARLY_MS = 10 * 60 * 1000;           // room opens 10 minutes 
 export type PeerStatus = "PENDING" | "ACCEPTED" | "DECLINED" | "CANCELLED";
 export type PeerAction = "accept" | "decline" | "cancel";
 
-export type PeerRequest = { peerKey: string; topic: string; message: string; startAt: Date; durationMinutes: number };
+export type PeerRequest = { peerKey: string; kind: "study" | "explain"; topic: string; message: string; startAt: Date; durationMinutes: number };
 
 /** Validate a booking request body. Returns the cleaned request or an error message. */
 export function validatePeerRequest(b: unknown, now = new Date()): { ok: true; value: PeerRequest } | { ok: false; error: string } {
@@ -19,6 +19,8 @@ export function validatePeerRequest(b: unknown, now = new Date()): { ok: true; v
   const message = String(o.message ?? "").trim();
   const durationMinutes = Number(o.durationMinutes);
   const startAt = new Date(String(o.startAt ?? ""));
+  const kind = o.kind === undefined ? "study" : o.kind;
+  if (kind !== "study" && kind !== "explain") return { ok: false, error: "Session type must be study or explain" };
   if (!peerKey || peerKey.length > 100) return { ok: false, error: "Pick a student" };
   if (topic.length < 3) return { ok: false, error: "Add a topic (at least 3 characters)" };
   if (topic.length > 120) return { ok: false, error: "Topic is too long (max 120 characters)" };
@@ -27,7 +29,7 @@ export function validatePeerRequest(b: unknown, now = new Date()): { ok: true; v
   if (Number.isNaN(startAt.getTime())) return { ok: false, error: "Pick a date and time" };
   if (startAt.getTime() < now.getTime() + PEER_LEAD_MS) return { ok: false, error: "Pick a time at least 15 minutes from now" };
   if (startAt.getTime() > now.getTime() + PEER_WINDOW_MS) return { ok: false, error: "Pick a time within the next 60 days" };
-  return { ok: true, value: { peerKey, topic, message, startAt, durationMinutes } };
+  return { ok: true, value: { peerKey, kind, topic, message, startAt, durationMinutes } };
 }
 
 /** Who may move a session to which state. */
@@ -68,3 +70,42 @@ export function peerMatch(me: Profile, other: Profile): { score: number; reasons
 /** Whether the meeting room can be joined right now. */
 export const canJoin = (status: PeerStatus, startAt: Date, durationMinutes: number, now = new Date()) =>
   status === "ACCEPTED" && now.getTime() >= startAt.getTime() - JOIN_EARLY_MS && now.getTime() <= startAt.getTime() + durationMinutes * 60000;
+
+// ── Connections (LinkedIn-style) ──────────────────────────────────────────────
+export type ConnStatus = "PENDING" | "ACCEPTED" | "DECLINED";
+export type ConnAction = "accept" | "decline" | "withdraw" | "remove";
+/** What a student sees about their relationship with someone. A decline is never revealed to the sender. */
+export type ConnView = "none" | "sent" | "received" | "connected";
+
+/** One document per pair, whoever asked first. */
+export const pairKey = (a: string, b: string) => [a, b].sort().join("::");
+
+export function connView(c: { status: ConnStatus; requesterKey: string } | null | undefined, me: string): ConnView {
+  if (!c) return "none";
+  if (c.status === "ACCEPTED") return "connected";
+  if (c.requesterKey === me) return "sent"; // PENDING or (silently) DECLINED
+  return c.status === "PENDING" ? "received" : "none";
+}
+
+/** Result of an action: the new status, "delete" to remove the record, or an error. */
+export function connTransition(status: ConnStatus, action: ConnAction, isRequester: boolean):
+  { ok: true; to: "ACCEPTED" | "DECLINED" | "delete" } | { ok: false; error: string; code: 403 | 409 } {
+  switch (action) {
+    case "accept":
+    case "decline":
+      if (isRequester) return { ok: false, error: "Only the invited student can respond", code: 403 };
+      if (status !== "PENDING") return { ok: false, error: "This invitation is no longer pending", code: 409 };
+      return { ok: true, to: action === "accept" ? "ACCEPTED" : "DECLINED" };
+    case "withdraw":
+      if (!isRequester) return { ok: false, error: "Only the sender can withdraw an invitation", code: 403 };
+      if (status === "ACCEPTED") return { ok: false, error: "You're already connected", code: 409 };
+      return { ok: true, to: "delete" };
+    case "remove":
+      if (status !== "ACCEPTED") return { ok: false, error: "You aren't connected", code: 409 };
+      return { ok: true, to: "delete" };
+  }
+}
+
+export const SESSION_KINDS = { study: "Study together", explain: "Explain something" } as const;
+export type SessionKind = keyof typeof SESSION_KINDS;
+export const isSessionKind = (k: unknown): k is SessionKind => typeof k === "string" && k in SESSION_KINDS;

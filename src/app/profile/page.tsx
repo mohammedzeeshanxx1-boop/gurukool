@@ -3,11 +3,14 @@ import Link from "next/link";
 import { useEffect, useState } from "react";
 import { ErrorAlert, PageHeader, Spinner, api, toErr, useStudent, type ApiErr } from "@/components/ui";
 import { CAREER_GOALS } from "@/lib/careers";
+import { usePersona } from "@/components/connect";
 
 // Empty form; name/email come from the signed-in account (single source of truth: MongoDB).
 const EMPTY_FORM = {
   name: "", email: "", college: "", branch: "", semester: 1, skills: "", careerGoal: "Full Stack Developer", interests: "", peerDiscoverable: true,
+  headline: "", about: "",
 };
+const EMPTY_EXTRA = { github: "", linkedin: "", portfolio: "", projects: "" };
 
 export default function ProfilePage() {
   const { student, setStudent, loading, error } = useStudent();
@@ -15,6 +18,13 @@ export default function ProfilePage() {
   const [saving, setSaving] = useState(false);
   const [msg, setMsg] = useState<string | null>(null);
   const [saveErr, setSaveErr] = useState<ApiErr | null>(null);
+  const [extra, setExtra] = useState(EMPTY_EXTRA);
+  const { id: myKey } = usePersona();
+
+  useEffect(() => {
+    api<{ portfolioLinks: { github: string; linkedin: string; portfolio: string }; projects: string[] }>("/api/student/visibility")
+      .then((v) => setExtra({ ...v.portfolioLinks, projects: v.projects.join("\n") })).catch(() => {});
+  }, [student]);
 
   useEffect(() => {
     api<{ user: { name: string; email: string } }>("/api/auth/me").then((d) => {
@@ -22,7 +32,7 @@ export default function ProfilePage() {
     }).catch(() => {});
   }, []);
   useEffect(() => {
-    if (student) setForm({ ...student, skills: student.skills.join(", "), interests: student.interests.join(", "), peerDiscoverable: student.peerDiscoverable !== false });
+    if (student) setForm({ ...student, skills: student.skills.join(", "), interests: student.interests.join(", "), peerDiscoverable: student.peerDiscoverable !== false, headline: student.headline ?? "", about: student.about ?? "" });
   }, [student]);
 
   const set = (k: keyof typeof EMPTY_FORM) => (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) =>
@@ -34,6 +44,11 @@ export default function ProfilePage() {
     try {
       const d = await api<{ student: typeof student }>("/api/student", { method: "PUT", body: JSON.stringify(form) });
       setStudent(d.student);
+      // Projects and links live with the portfolio settings (also used by Grow / recruiters).
+      await api("/api/student/visibility", { method: "PATCH", body: JSON.stringify({
+        portfolioLinks: { github: extra.github, linkedin: extra.linkedin, portfolio: extra.portfolio },
+        projects: extra.projects.split("\n").map((x) => x.trim()).filter(Boolean),
+      }) });
       setMsg("Profile saved.");
       window.dispatchEvent(new Event("gk-account-updated"));
     } catch (e) {
@@ -52,7 +67,7 @@ export default function ProfilePage() {
         eyebrow="Your details"
         title="My Profile"
         subtitle="Your career goal, skills and interests drive skill-gap analysis, recommendations and hackathon matches across UDAAN."
-        right={<Link href="/" className="btn-ghost">&larr; Dashboard</Link>}
+        right={<>{myKey && student && <Link href={`/connect/people/${encodeURIComponent(myKey)}`} className="btn-dark">View Public Profile</Link>}<Link href="/" className="btn-ghost">&larr; Dashboard</Link></>}
       />
 
       <div className="grid gap-6 lg:grid-cols-3">
@@ -64,6 +79,11 @@ export default function ProfilePage() {
             <div className="mt-4 grid gap-4 sm:grid-cols-2">
               <div><label className="label" htmlFor="pf-name">Name</label><input id="pf-name" className="input" value={form.name} onChange={set("name")} required /></div>
               <div><label className="label" htmlFor="pf-email">Email (account)</label><input id="pf-email" className="input" type="email" value={form.email} readOnly title="Your sign-in email. Change it in Account settings." /></div>
+              <div className="sm:col-span-2"><label className="label" htmlFor="pf-headline">Headline</label>
+                <input id="pf-headline" className="input" maxLength={120} placeholder="e.g. 3rd-year ISE · learning full-stack with React & Node" value={form.headline} onChange={(e) => setForm({ ...form, headline: e.target.value })} /></div>
+              <div className="sm:col-span-2"><label className="label" htmlFor="pf-about">About</label>
+                <textarea id="pf-about" className="input" rows={4} maxLength={1000} placeholder="What you're working on, what you'd like to learn, and what you can help others with." value={form.about} onChange={(e) => setForm({ ...form, about: e.target.value })} />
+                <p className="mt-1 text-right text-xs text-[#8a909c]">{form.about.length}/1000</p></div>
             </div>
           </section>
 
@@ -94,12 +114,23 @@ export default function ProfilePage() {
           </section>
 
           <section className="border-t border-[#e3e5e9] pt-6">
+            <h2 className="h2">Projects &amp; links</h2>
+            <div className="mt-4 grid gap-4 sm:grid-cols-3">
+              <div><label className="label" htmlFor="pf-gh">GitHub</label><input id="pf-gh" className="input" placeholder="github.com/username" value={extra.github} onChange={(e) => setExtra({ ...extra, github: e.target.value })} /></div>
+              <div><label className="label" htmlFor="pf-li">LinkedIn</label><input id="pf-li" className="input" placeholder="linkedin.com/in/username" value={extra.linkedin} onChange={(e) => setExtra({ ...extra, linkedin: e.target.value })} /></div>
+              <div><label className="label" htmlFor="pf-pf">Portfolio</label><input id="pf-pf" className="input" placeholder="yourname.dev" value={extra.portfolio} onChange={(e) => setExtra({ ...extra, portfolio: e.target.value })} /></div>
+              <div className="sm:col-span-3"><label className="label" htmlFor="pf-proj">Projects (one per line)</label>
+                <textarea id="pf-proj" className="input" rows={3} placeholder="Attendance tracker — React + Firebase" value={extra.projects} onChange={(e) => setExtra({ ...extra, projects: e.target.value })} /></div>
+            </div>
+          </section>
+
+          <section className="border-t border-[#e3e5e9] pt-6">
             <h2 className="h2">Connect</h2>
             <label className="mt-4 flex cursor-pointer items-start gap-3 rounded-xl border border-[#e3e5e9] bg-[#f7f8fa] p-4">
               <input type="checkbox" className="mt-0.5 h-5 w-5 accent-[#D9541E]" checked={form.peerDiscoverable} onChange={(e) => setForm({ ...form, peerDiscoverable: e.target.checked })} />
               <span>
-                <span className="block text-sm font-semibold text-[#16181d]">Let other students find me and request study sessions</span>
-                <span className="mt-0.5 block text-[13px] text-[#5f6573]">They see your name, college, branch, semester, goal, skills and interests. Never your email.</span>
+                <span className="block text-sm font-semibold text-[#16181d]">Let other students find me and send connection requests</span>
+                <span className="mt-0.5 block text-[13px] text-[#5f6573]">Students see your profile: name, headline, about, college, branch, semester, goal, skills, interests, projects and links. Your learning progress is shown to connections only. Never your email.</span>
               </span>
             </label>
           </section>

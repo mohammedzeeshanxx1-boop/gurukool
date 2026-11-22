@@ -50,6 +50,8 @@ export async function PUT(req: Request) {
         careerGoal,
         skills: splitList(body.skills),
         interests: splitList(body.interests),
+        ...(body.headline !== undefined ? { headline: String(body.headline).trim().slice(0, 120) } : {}),
+        ...(body.about !== undefined ? { about: String(body.about).trim().slice(0, 1000) } : {}),
         ...(typeof body.peerDiscoverable === "boolean" ? { peerDiscoverable: body.peerDiscoverable } : {}),
       },
       { upsert: true, new: true, runValidators: true }

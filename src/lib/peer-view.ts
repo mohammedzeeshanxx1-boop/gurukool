@@ -11,6 +11,7 @@ export function publicPeerSession(s: PeerSessionDoc, myKey: string) {
     id: String(s._id),
     direction: sent ? "sent" : "received",
     with: { id: sent ? s.peerKey : s.requesterKey, name: sent ? s.peerName : s.requesterName },
+    kind: (s.kind ?? "study") as "study" | "explain",
     topic: s.topic,
     message: s.message,
     startAt: startAt.toISOString(),

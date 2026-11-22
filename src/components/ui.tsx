@@ -3,7 +3,7 @@ import { useCallback, useEffect, useState } from "react";
 
 export type Student = {
   name: string; email: string; college: string; branch: string; semester: number;
-  skills: string[]; careerGoal: string; interests: string[]; peerDiscoverable?: boolean;
+  skills: string[]; careerGoal: string; interests: string[]; peerDiscoverable?: boolean; headline?: string; about?: string;
 };
 
 export type ApiErr = { error: string; code?: string };

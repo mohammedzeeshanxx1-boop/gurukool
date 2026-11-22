@@ -14,6 +14,8 @@ const StudentSchema = new Schema(
     skills: { type: [String], default: [] },
     careerGoal: { type: String, required: true },
     interests: { type: [String], default: [] },
+    headline: { type: String, default: "", maxlength: 120 }, // e.g. "3rd-year CSE · building with React"
+    about: { type: String, default: "", maxlength: 1000 },
     // CONNECT 2.0 extensions — private by default; recruiters only see opted-in students.
     recruiterDiscoverable: { type: Boolean, default: false, index: true },
     // Other signed-in students can find this profile in Connect (name, college, branch, skills, goal; never email).
