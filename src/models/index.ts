@@ -16,6 +16,8 @@ const StudentSchema = new Schema(
     interests: { type: [String], default: [] },
     // CONNECT 2.0 extensions — private by default; recruiters only see opted-in students.
     recruiterDiscoverable: { type: Boolean, default: false, index: true },
+    // Other signed-in students can find this profile in Connect (name, college, branch, skills, goal; never email).
+    peerDiscoverable: { type: Boolean, default: true, index: true },
     portfolioLinks: {
       github: { type: String, default: "" },
       linkedin: { type: String, default: "" },

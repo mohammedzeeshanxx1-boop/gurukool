@@ -1,29 +1,11 @@
 "use client";
-import Link from "next/link";
 import { useCallback, useEffect, useState } from "react";
 import { api } from "./ui";
 
-export type Slot = { day: string; start: string; end: string };
-export type Mentor = {
-  id: string; name: string; headline: string; designation: string; organization: string; yearsOfExperience: number;
-  bio: string; expertise: string[]; teachingTopics: string[]; domains: string[]; sessionFormats: string[];
-  sessionDescription: string; availability: Slot[]; profileStatus: string; isDemo: boolean; verified: boolean; links?: { linkedin: string; portfolio: string };
-};
-export type UpcomingSlot = { startAt: string; endAt: string; day: string; date: string; label: string; slotMinutes: number };
-export type Booking = {
-  id: string; mentorId: string; mentorName: string; studentName: string; studentEmail?: string; topic: string;
-  startAt: string; endAt: string; when: string; durationMinutes: number; message: string; status: string; statusNote: string;
-};
 export type PersonaOption = { role: "student" | "mentor" | "recruiter"; id: string; label: string; sub: string };
 export type PersonaInfo = { persona: { role: string; id: string }; current: PersonaOption; options: PersonaOption[]; demoEnabled: boolean };
 
 export const CONNECT_URL = process.env.NEXT_PUBLIC_CONNECT_URL ?? "";
-
-export function fmtTime(hhmm: string) {
-  const [h, m] = hhmm.split(":").map(Number);
-  return `${((h + 11) % 12) + 1}:${String(m).padStart(2, "0")} ${h >= 12 ? "PM" : "AM"}`;
-}
-export const slotText = (s: Slot) => `${s.day.slice(0, 3)} ${fmtTime(s.start)}–${fmtTime(s.end)}`;
 
 export function usePersona() {
   const [info, setInfo] = useState<PersonaInfo | null>(null);
@@ -42,13 +24,6 @@ export function usePersona() {
 export async function switchPersona(role: string, id: string) {
   await api("/api/persona", { method: "POST", body: JSON.stringify({ role, id }) });
   window.location.reload();
-}
-
-export function ProfileBadge({ isDemo, verified }: { isDemo: boolean; verified?: boolean }) {
-  if (isDemo) return <span className="chip bg-amber-100 text-amber-800" title="Fictional profile created for demonstration">Demo · fictional</span>;
-  return verified
-    ? <span className="chip bg-emerald-100 text-emerald-700" title="Account approved by a GURUKOOL admin">✓ Admin-verified</span>
-    : <span className="chip bg-zinc-100 text-zinc-600" title="Awaiting admin approval">Not verified</span>;
 }
 
 const STATUS_CLS: Record<string, string> = {
@@ -72,42 +47,6 @@ export function JoinSessionButton({ startAt, endAt }: { startAt?: string; endAt?
     <div>
       <a href={CONNECT_URL} target="_blank" rel="noopener noreferrer" className="btn-primary px-3 py-1.5">Join Mentorship Session ↗</a>
       <p className="mt-1 text-xs text-zinc-500">Opens the GURUKOOL collaboration space (shared link, not a private room).</p>
-    </div>
-  );
-}
-
-export function MentorCard({ m, reason, extra }: { m: Mentor; reason?: string[]; extra?: React.ReactNode }) {
-  return (
-    <div className="card flex flex-col">
-      <div className="flex items-start justify-between gap-2">
-        <div className="min-w-0">
-          <h3 className="font-semibold text-zinc-900">{m.name}</h3>
-          <p className="text-sm text-zinc-600">{m.headline}</p>
-        </div>
-        <ProfileBadge isDemo={m.isDemo} verified={m.verified} />
-      </div>
-      <p className="mt-2 text-sm text-zinc-500">{m.designation} · {m.organization} · {m.yearsOfExperience} yrs experience</p>
-      {m.bio && <p className="mt-2 line-clamp-3 text-sm text-zinc-600">{m.bio}</p>}
-      {reason && reason.length > 0 && (
-        <div className="mt-3 space-y-2 rounded-lg border border-zinc-200 bg-zinc-50 px-3 py-2 text-sm text-zinc-700">
-          {reason.map((r) => <p key={r}>{r}</p>)}
-          {extra}
-        </div>
-      )}
-      <div className="mt-3"><div className="label">Expertise</div>
-        <div className="flex flex-wrap gap-1.5">{m.expertise.map((e) => <span key={e} className="chip bg-zinc-100 text-zinc-700">{e}</span>)}</div>
-      </div>
-      <div className="mt-3"><div className="label">Teaches</div><p className="text-sm text-zinc-600">{m.teachingTopics.join(" · ")}</p></div>
-      <div className="mt-3 grid grid-cols-2 gap-3 text-sm">
-        <div><div className="label">Availability (IST)</div>
-          {m.availability.length ? m.availability.map((s, i) => <div key={i} className="text-zinc-600">{slotText(s)}</div>) : <span className="text-zinc-400">No slots yet</span>}
-        </div>
-        <div><div className="label">Format</div>{m.sessionFormats.map((f) => <div key={f} className="text-zinc-600">{f}</div>)}</div>
-      </div>
-      <div className="mt-4 flex gap-2 pt-1">
-        <Link href={`/connect/mentors/${m.id}`} className="btn-ghost flex-1">View Profile</Link>
-        <Link href={`/connect/mentors/${m.id}#book`} className="btn-primary flex-1" aria-disabled={!m.availability.length}>Request Session</Link>
-      </div>
     </div>
   );
 }

@@ -6,7 +6,7 @@ import { CAREER_GOALS } from "@/lib/careers";
 
 // Empty form; name/email come from the signed-in account (single source of truth: MongoDB).
 const EMPTY_FORM = {
-  name: "", email: "", college: "", branch: "", semester: 1, skills: "", careerGoal: "Full Stack Developer", interests: "",
+  name: "", email: "", college: "", branch: "", semester: 1, skills: "", careerGoal: "Full Stack Developer", interests: "", peerDiscoverable: true,
 };
 
 export default function ProfilePage() {
@@ -22,7 +22,7 @@ export default function ProfilePage() {
     }).catch(() => {});
   }, []);
   useEffect(() => {
-    if (student) setForm({ ...student, skills: student.skills.join(", "), interests: student.interests.join(", ") });
+    if (student) setForm({ ...student, skills: student.skills.join(", "), interests: student.interests.join(", "), peerDiscoverable: student.peerDiscoverable !== false });
   }, [student]);
 
   const set = (k: keyof typeof EMPTY_FORM) => (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) =>
@@ -91,6 +91,17 @@ export default function ProfilePage() {
               </div>
               <div><label className="label" htmlFor="pf-int">Interests (for Compete)</label><input id="pf-int" className="input" value={form.interests} onChange={set("interests")} placeholder="e.g. AI, Web3, FinTech" /></div>
             </div>
+          </section>
+
+          <section className="border-t border-[#e3e5e9] pt-6">
+            <h2 className="h2">Connect</h2>
+            <label className="mt-4 flex cursor-pointer items-start gap-3 rounded-xl border border-[#e3e5e9] bg-[#f7f8fa] p-4">
+              <input type="checkbox" className="mt-0.5 h-5 w-5 accent-[#D9541E]" checked={form.peerDiscoverable} onChange={(e) => setForm({ ...form, peerDiscoverable: e.target.checked })} />
+              <span>
+                <span className="block text-sm font-semibold text-[#16181d]">Let other students find me and request study sessions</span>
+                <span className="mt-0.5 block text-[13px] text-[#5f6573]">They see your name, college, branch, semester, goal, skills and interests. Never your email.</span>
+              </span>
+            </label>
           </section>
 
           <div className="flex flex-wrap items-center gap-3 border-t border-[#e3e5e9] pt-6">

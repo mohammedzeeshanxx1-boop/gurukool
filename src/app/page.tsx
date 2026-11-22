@@ -13,15 +13,15 @@ type RoadmapRes = { roadmap: { careerGoal: string; stages: Stage[] } | null };
 type TrainRes = {
   enrollments: { id: string; courseId: string; title: string; trainer: string; engagementPct: number; completed: boolean }[];
   upcomingSessions: { id: string; courseTitle: string; title: string; when: string; trainer: string }[];
-  mentorshipSessions: { id: string; mentor: string; topic: string; when: string }[];
 };
+type PeerRes = { sessions: { id: string; topic: string; with: { name: string }; when: string; endAt: string; status: string }[] };
 type NotifRes = { unread: number; items: { id: string; title: string; body: string; link: string; read: boolean; createdAt: string }[] };
 
 const MODULES = [
   { href: "/learn", title: "Learn", desc: "Skill gaps, quiz, roadmap", icon: "M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2zM22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z" },
   { href: "/train", title: "Upskill", desc: "Courses & sessions", icon: "M12 2 2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5" },
   { href: "/build", title: "CodeLab", desc: "Code + AI mentor", icon: "M16 18l6-6-6-6M8 6l-6 6 6 6" },
-  { href: "/connect", title: "Connect", desc: "Peers & mentors", icon: "M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2M9 11a4 4 0 1 0 0-8 4 4 0 0 0 0 8zM23 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75" },
+  { href: "/connect", title: "Connect", desc: "Study with peers", icon: "M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2M9 11a4 4 0 1 0 0-8 4 4 0 0 0 0 8zM23 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75" },
   { href: "/compete", title: "Compete", desc: "Hackathons", icon: "M6 9H4.5a2.5 2.5 0 0 1 0-5H6M18 9h1.5a2.5 2.5 0 0 0 0-5H18M4 22h16M18 2H6v7a6 6 0 0 0 12 0V2z" },
   { href: "/grow", title: "Grow", desc: "Resume builder", icon: "M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8zM14 2v6h6M16 13H8M16 17H8" },
 ];
@@ -70,6 +70,7 @@ export default function Dashboard() {
   const [roadmap, setRoadmap] = useState<RoadmapRes["roadmap"]>(null);
   const [train, setTrain] = useState<TrainRes | null>(null);
   const [notifs, setNotifs] = useState<NotifRes | null>(null);
+  const [peers, setPeers] = useState<PeerRes | null>(null);
 
   useEffect(() => {
     api<{ user: { name: string } }>("/api/auth/me").then((d) => setName(d.user.name)).catch(() => {});
@@ -78,6 +79,7 @@ export default function Dashboard() {
     api<RoadmapRes>("/api/learn/roadmap").then((d) => setRoadmap(d.roadmap)).catch(() => {});
     api<TrainRes>("/api/train/me").then(setTrain).catch(() => {});
     api<NotifRes>("/api/notifications").then(setNotifs).catch(() => {});
+    api<PeerRes>("/api/peer-sessions").then(setPeers).catch(() => {});
   }, []);
   useEffect(() => {
     if (student) api<MasteryRes>("/api/learn/mastery").then(setMastery).catch(() => {});
@@ -95,7 +97,8 @@ export default function Dashboard() {
   const nextStages = roadmap?.stages.filter((s) => !s.completed).slice(0, 3) ?? [];
   const upcoming = [
     ...(train?.upcomingSessions ?? []).map((s) => ({ id: s.id, title: s.title, meta: `${s.courseTitle} · ${s.trainer}`, when: s.when, href: "/train" })),
-    ...(train?.mentorshipSessions ?? []).map((s) => ({ id: s.id, title: s.topic, meta: `Mentorship · ${s.mentor}`, when: s.when, href: "/connect" })),
+    ...(peers?.sessions ?? []).filter((s) => s.status === "ACCEPTED" && new Date(s.endAt).getTime() >= Date.now())
+      .map((s) => ({ id: s.id, title: s.topic, meta: `Study session · ${s.with.name}`, when: s.when, href: "/connect?tab=sessions" })),
   ].slice(0, 4);
 
   return (
@@ -204,7 +207,7 @@ export default function Dashboard() {
                   <div className="mt-1 font-medium text-[#16181d]">{u.title}</div>
                   <div className="text-xs text-[#5f6573]">{u.meta}</div>
                 </Link>
-              )) : <Empty href="/train" cta="Browse courses →">No sessions scheduled.</Empty>}
+              )) : <Empty href="/connect" cta="Find a study partner →">No sessions scheduled.</Empty>}
             </div>
           </section>
 

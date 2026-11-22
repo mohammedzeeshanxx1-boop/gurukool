@@ -53,7 +53,7 @@ export async function PATCH(req: Request) {
     if ("approved" in set && target.role === "mentor" && mongoose.isValidObjectId(target.profileId))
       await Mentor.updateOne({ _id: target.profileId }, { $set: { verified: set.approved } });
     if ("approved" in set)
-      await notifyUser(b.id, { title: set.approved ? "Account approved" : "Approval revoked", body: set.approved ? "An admin approved your account. You now have full access." : "An admin revoked your account approval.", link: target.role === "mentor" ? "/connect/mentor" : "/grow/recruiter" });
+      await notifyUser(b.id, { title: set.approved ? "Account approved" : "Approval revoked", body: set.approved ? "An admin approved your account. You now have full access." : "An admin revoked your account approval.", link: target.role === "mentor" ? "/train" : "/grow/recruiter" });
     if ("active" in set && !set.active) await notifyUser(b.id, { title: "Account suspended", body: "Contact the GURUKOOL admin." });
     return NextResponse.json({ ok: true, ...set });
   } catch (e) {

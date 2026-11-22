@@ -39,17 +39,16 @@ export function decodeSession(value: string | undefined): SessionPayload | null 
 export const PORTALS = { student: "student", recruiter: "recruiter", expert: "mentor", admin: "admin" } as const;
 export type Portal = keyof typeof PORTALS;
 export const PORTAL_OF: Record<Role, Portal> = { student: "student", recruiter: "recruiter", mentor: "expert", admin: "admin" };
-export const HOME: Record<Role, string> = { student: "/", mentor: "/connect/mentor", recruiter: "/grow/recruiter", admin: "/admin" };
+export const HOME: Record<Role, string> = { student: "/", mentor: "/train", recruiter: "/grow/recruiter", admin: "/admin" };
 
 /** Roles allowed on a page path, or null for public pages. */
 export function allowedRoles(path: string): Role[] | null {
   if (path === "/welcome" || /^\/(student|recruiter|expert|admin)\/(login|register)\/?$/.test(path)) return null;
   if (path.startsWith("/account")) return ["student", "mentor", "recruiter", "admin"];
-  if (path.startsWith("/connect/mentor") && !path.startsWith("/connect/mentors")) return ["mentor"];
   if (path.startsWith("/grow/recruiter")) return ["recruiter"];
   if (path.startsWith("/admin")) return ["admin"];
-  if (path.startsWith("/connect") || path.startsWith("/train")) return ["student", "mentor"];
-  return ["student"]; // "/", /learn, /build, /compete, /grow
+  if (path.startsWith("/train")) return ["student", "mentor"];
+  return ["student"]; // "/", /profile, /learn, /build, /connect, /compete, /grow
 }
 
 export function portalFor(path: string): Portal {

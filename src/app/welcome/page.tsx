@@ -98,7 +98,7 @@ const MODULES = [
   { icon: "book", title: "Learn", href: "/learn", badge: "AI", desc: "Skill-gap analysis against your career goal, a quiz to test what you know, and a personal roadmap." },
   { icon: "layers", title: "Upskill", href: "/train", desc: "Training courses and weekend sessions run by mentors and industry experts." },
   { icon: "code", title: "CodeLab", href: "/build", badge: "AI", desc: "Write and run code in your browser with an AI mentor to explain and review it." },
-  { icon: "users", title: "Connect", href: "/connect", desc: "A peer community with channels and mentors, so you never get stuck alone." },
+  { icon: "users", title: "Connect", href: "/connect", desc: "Find students with the same goals, book a study session and meet over video." },
   { icon: "trophy", title: "Compete", href: "/compete", desc: "Hackathons and challenges matched to your interests." },
   { icon: "file", title: "Grow", href: "/grow", desc: "A resume builder that turns your progress into a portfolio recruiters can discover." },
   { icon: "briefcase", title: "Recruiter Portal", href: "/recruiter/login", badge: "Portal", desc: "Approved recruiters discover portfolios that students have chosen to share." },
@@ -108,7 +108,7 @@ const PRINCIPLES: { icon: string; label: string; href?: string }[] = [
   { icon: "target", label: "Goal-Driven Learning Paths" },
   { icon: "spark", label: "AI Help Where It Matters", href: "/build" },
   { icon: "map", label: "One Roadmap Across Modules", href: "/learn" },
-  { icon: "chat", label: "Real Mentors, Real Feedback", href: "/connect" },
+  { icon: "chat", label: "Study Sessions With Peers", href: "/connect" },
   { icon: "trophy", label: "Hackathons Matched to You", href: "/compete" },
   { icon: "lock", label: "Students Choose What Recruiters See" },
   { icon: "shield", label: "Recruiters Approved by Admins" },
@@ -181,7 +181,7 @@ function PreviewPanel() {
 {`<Progress label="Full Stack roadmap" value={50} />
 
 <Callout kind="success" action="Open review">
-  Your mentor reviewed your CodeLab submission.
+  Your trainer reviewed your assignment.
 </Callout>
 
 <Callout kind="warning" action="Register">
@@ -202,7 +202,7 @@ function PreviewPanel() {
             <div className="flex items-start gap-5 rounded-2xl p-5" style={{ background: "#e1f5e3" }}>
               <span className="mt-3"><Icon name="mentor" color="#0b7a39" size={26} /></span>
               <div>
-                <p className="text-[17px]" style={{ color: C.ink }}>Your mentor reviewed your code.</p>
+                <p className="text-[17px]" style={{ color: C.ink }}>Your trainer reviewed your code.</p>
                 <span className="mt-4 inline-block rounded-lg px-5 py-2.5 text-[16px] font-semibold text-white" style={{ background: "#0b8a40" }}>Open Review</span>
               </div>
             </div>

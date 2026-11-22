@@ -3,7 +3,6 @@ import Link from "next/link";
 import { useEffect, useState } from "react";
 import { Alert, ErrorAlert, PageHeader, SourceBadge, Spinner, api, toErr, useStudent, type ApiErr } from "@/components/ui";
 import { CAREER_GOALS } from "@/lib/careers";
-import MentorRecommendations from "@/components/MentorRecommendations";
 import RecommendedTraining from "@/components/RecommendedTraining";
 import SkillMastery from "@/components/SkillMastery";
 
@@ -246,9 +245,8 @@ export default function LearnPage() {
         )}
       </Step>
 
-      {/* LEARN → CONNECT: mentors for the topics this student needs */}
+      {/* LEARN → UPSKILL: training for the topics this student needs */}
       {student && <RecommendedTraining refreshKey={`${goal}|${gap?.analysis.readiness ?? ""}|${result?.score ?? ""}|${roadmap?._id ?? ""}`} />}
-      {student && <MentorRecommendations refreshKey={`${goal}|${gap?.analysis.readiness ?? ""}|${result?.score ?? ""}|${roadmap?._id ?? ""}`} />}
     </div>
   );
 }

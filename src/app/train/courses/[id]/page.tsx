@@ -167,7 +167,7 @@ export default function CoursePage({ params }: { params: Promise<{ id: string }>
           <div>
             <h1 className="text-2xl font-semibold text-zinc-900">{c.title}</h1>
             <p className="mt-1 text-sm text-zinc-500">{c.category} · {c.difficulty} · {c.durationWeeks} weeks · {c.modules.length} modules · {c.lessonCount} lessons</p>
-            <p className="text-sm text-zinc-500">Trainer: <Link className="text-zinc-700 hover:underline" href={`/connect/mentors/${c.trainer.id}`}>{c.trainer.name}</Link>{c.trainer.isDemo && <span className="text-amber-700"> (fictional demo profile)</span>}</p>
+            <p className="text-sm text-zinc-500">Trainer: <span className="text-zinc-700">{c.trainer.name}</span>{c.trainer.isDemo && <span className="text-amber-700"> (fictional demo profile)</span>}</p>
           </div>
           <div className="flex gap-1">{c.isDemo && <DemoContentBadge />}{!c.published && <span className="chip bg-zinc-100 text-zinc-600">Draft</span>}</div>
         </div>

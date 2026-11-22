@@ -113,7 +113,7 @@ function MyTraining() {
               {d.mentorshipSessions.map((m) => (
                 <div key={m.id} className="space-y-1 rounded-lg border border-emerald-100 bg-emerald-50 p-3">
                   <div className="flex items-start justify-between gap-2"><b className="text-sm">{m.topic}</b><span className="chip bg-emerald-50 text-emerald-600">1:1 mentorship</span></div>
-                  <p className="text-xs text-zinc-500">with <Link className="text-zinc-700 hover:underline" href={`/connect/mentors/${m.mentorId}`}>{m.mentor}</Link></p>
+                  <p className="text-xs text-zinc-500">with <span className="text-zinc-700">{m.mentor}</span></p>
                   <p className="text-sm text-zinc-700">{m.when} · {m.durationMinutes} min</p>
                   <JoinSessionButton startAt={m.startAt} endAt={m.endAt} />
                 </div>

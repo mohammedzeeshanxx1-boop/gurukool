@@ -50,6 +50,7 @@ export async function PUT(req: Request) {
         careerGoal,
         skills: splitList(body.skills),
         interests: splitList(body.interests),
+        ...(typeof body.peerDiscoverable === "boolean" ? { peerDiscoverable: body.peerDiscoverable } : {}),
       },
       { upsert: true, new: true, runValidators: true }
     ).lean();

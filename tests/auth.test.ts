@@ -35,8 +35,10 @@ describe("route access rules", () => {
   it("guards portals by role", () => {
     expect(allowedRoles("/welcome")).toBeNull();
     expect(allowedRoles("/admin/users")).toEqual(["admin"]);
-    expect(allowedRoles("/connect/mentor")).toEqual(["mentor"]);
-    expect(allowedRoles("/connect/mentors")).toEqual(["student", "mentor"]);
+    expect(allowedRoles("/connect")).toEqual(["student"]); // Connect is student-to-student
+    expect(allowedRoles("/connect/meeting")).toEqual(["student"]);
+    expect(allowedRoles("/train")).toEqual(["student", "mentor"]);
+    expect(allowedRoles("/profile")).toEqual(["student"]);
     expect(allowedRoles("/learn")).toEqual(["student"]);
   });
 });
