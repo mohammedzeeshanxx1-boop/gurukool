@@ -1,6 +1,7 @@
 "use client";
 import Link from "next/link";
 import { useState } from "react";
+import Logo from "@/components/Logo";
 import { PORTAL_INFO, type PortalKey } from "@/lib/portals";
 
 /* ─── Palette (light landing, WebAwesome-inspired) ─── */
@@ -283,7 +284,7 @@ export default function Welcome() {
           <button onClick={() => setMenu(!menu)} aria-label="Menu" className="justify-self-start p-2" style={{ color: C.muted }}>
             <Icon name={menu ? "close" : "menu"} size={26} />
           </button>
-          <Link href="/welcome" className="justify-self-center"><img src="/udaan-logo.png" alt="UDAAN" style={{ height: 38, width: "auto" }} /></Link>
+          <Link href="/welcome" className="justify-self-center"><Logo size={34} /></Link>
           <Link href="/student/login" aria-label="Sign in" className="justify-self-end p-2" style={{ color: C.muted }}><Icon name="login" size={26} /></Link>
         </div>
         {menu && (
@@ -479,7 +480,7 @@ export default function Welcome() {
 
       <footer className="py-10" style={{ background: C.ink }}>
         <div className="mx-auto flex max-w-6xl flex-col items-center justify-between gap-4 px-6 text-sm sm:flex-row" style={{ color: "#9aa0ad" }}>
-          <img src="/udaan-logo-dark.png" alt="UDAAN" style={{ height: 30, width: "auto" }} />
+          <Logo size={28} tone="dark" />
           <span>Learn. Build. Connect. Compete. Grow.</span>
           <span>&copy; {new Date().getFullYear()} GURUKOOL</span>
         </div>

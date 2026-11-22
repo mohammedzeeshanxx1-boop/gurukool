@@ -34,5 +34,5 @@ export function middleware(req: NextRequest) {
 
 export const config = {
   runtime: "nodejs",
-  matcher: ["/((?!_next/|favicon.ico|.*\\.(?:png|jpg|jpeg|svg|ico|css|js|map)$).*)"],
+  matcher: ["/((?!_next/|favicon.ico|.*\\.(?:png|jpg|jpeg|svg|ico|css|js|map|woff2)$).*)"],
 };
