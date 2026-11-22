@@ -37,10 +37,10 @@ export function useStudent() {
 
 export function PageHeader({ title, subtitle, right }: { title: string; subtitle?: string; right?: React.ReactNode }) {
   return (
-    <div className="mb-6 flex flex-wrap items-start justify-between gap-4 pb-5" style={{borderBottom:"1px solid #e8e2d9"}}>
+    <div className="mb-6 flex flex-wrap items-start justify-between gap-4 pb-5" style={{borderBottom:"1px solid #2a2a2a"}}>
       <div>
-        <h1 className="text-xl font-bold tracking-tight" style={{ color: "#111111" }}>{title}</h1>
-        {subtitle && <p className="mt-1 text-[13px] leading-relaxed max-w-xl" style={{color:"#6b6460"}}>{subtitle}</p>}
+        <h1 className="text-xl font-bold tracking-tight" style={{ color: "#e8e2d9" }}>{title}</h1>
+        {subtitle && <p className="mt-1 text-[13px] leading-relaxed max-w-xl" style={{color:"#9a9490"}}>{subtitle}</p>}
       </div>
       {right && <div className="flex items-center gap-2 pt-0.5">{right}</div>}
     </div>
@@ -49,10 +49,10 @@ export function PageHeader({ title, subtitle, right }: { title: string; subtitle
 
 export function Alert({ kind = "info", children }: { kind?: "info" | "warn" | "error" | "success"; children: React.ReactNode }) {
   const cls = {
-    info:    "border-zinc-200 bg-zinc-50 text-zinc-600",
-    warn:    "border-amber-200 bg-amber-50 text-amber-700",
-    error:   "border-red-200 bg-red-50 text-red-600",
-    success: "border-emerald-200 bg-emerald-50 text-emerald-700",
+    info:    "border-[#3a3a3a] bg-[#2a2a2a] text-[#9a9490]",
+    warn:    "border-amber-900 bg-amber-950 text-amber-400",
+    error:   "border-red-900 bg-red-950 text-red-400",
+    success: "border-emerald-900 bg-emerald-950 text-emerald-400",
   }[kind];
   return (
     <div className={`flex items-start gap-2.5 rounded-lg border px-4 py-3 text-sm ${cls}`}>
