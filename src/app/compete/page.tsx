@@ -95,7 +95,7 @@ export default function CompetePage() {
             <div className="label">Filter by theme {student && "(pre-selected from your profile interests)"}</div>
             <div className="flex flex-wrap gap-2">
               {allThemes.map((t) => (
-                <button key={t} onClick={() => toggle(t)} className={`chip border px-3 py-1 ${selected.includes(t) ? "border-[#2563EB] bg-[#2563EB] text-white" : "border-zinc-200 bg-white text-zinc-600 hover:border-zinc-300"}`}>{t}</button>
+                <button key={t} onClick={() => toggle(t)} className={`chip border px-3 py-1 ${selected.includes(t) ? "border-[#D9541E] bg-[#D9541E] text-white" : "border-zinc-200 bg-white text-zinc-600 hover:border-zinc-300"}`}>{t}</button>
               ))}
               {selected.length > 0 && <button className="text-xs text-zinc-500 hover:underline" onClick={() => setSelected([])}>Show all</button>}
             </div>

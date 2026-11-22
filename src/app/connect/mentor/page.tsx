@@ -43,11 +43,11 @@ function ProfileEditor({ initial, onSave, saveLabel, email }: { initial: Profile
       <div><label className="label">Teaching topics (comma separated)</label><input className="input" value={f.teachingTopics} onChange={set("teachingTopics")} required placeholder="Backend Development, Interview Preparation" /></div>
       <div><label className="label">Domains</label>
         <div className="flex flex-wrap gap-2">{DOMAINS.map((d) => (
-          <button type="button" key={d} onClick={() => toggle("domains", d)} className={`chip border px-3 py-1 ${f.domains.includes(d) ? "border-[#2563EB] bg-[#2563EB] text-white" : "border-zinc-200 bg-white text-zinc-600"}`}>{d}</button>
+          <button type="button" key={d} onClick={() => toggle("domains", d)} className={`chip border px-3 py-1 ${f.domains.includes(d) ? "border-[#D9541E] bg-[#D9541E] text-white" : "border-zinc-200 bg-white text-zinc-600"}`}>{d}</button>
         ))}</div></div>
       <div><label className="label">Session formats</label>
         <div className="flex flex-wrap gap-2">{FORMATS.map((d) => (
-          <button type="button" key={d} onClick={() => toggle("sessionFormats", d)} className={`chip border px-3 py-1 ${f.sessionFormats.includes(d) ? "border-[#2563EB] bg-[#2563EB] text-white" : "border-zinc-200 bg-white text-zinc-600"}`}>{d}</button>
+          <button type="button" key={d} onClick={() => toggle("sessionFormats", d)} className={`chip border px-3 py-1 ${f.sessionFormats.includes(d) ? "border-[#D9541E] bg-[#D9541E] text-white" : "border-zinc-200 bg-white text-zinc-600"}`}>{d}</button>
         ))}</div></div>
       <div><label className="label">Session description</label><textarea className="input" rows={2} value={f.sessionDescription} onChange={set("sessionDescription")} /></div>
       <div className="grid gap-3 sm:grid-cols-2">

@@ -11,7 +11,7 @@ export function DemoContentBadge() {
   return <span className="chip bg-amber-100 text-amber-800" title="Sample course content for the demo">Demo content</span>;
 }
 
-export function ProgressBar({ pct, color = "bg-[#2563EB]", label }: { pct: number; color?: string; label?: string }) {
+export function ProgressBar({ pct, color = "bg-[#D9541E]", label }: { pct: number; color?: string; label?: string }) {
   return (
     <div>
       {label && <div className="mb-1 flex justify-between text-xs text-zinc-500"><span>{label}</span><span>{pct}%</span></div>}

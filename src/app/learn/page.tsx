@@ -23,7 +23,7 @@ function Step({ n, title, children, right }: { n: number; title: string; childre
     <section className="card">
       <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
         <div className="flex items-center gap-3">
-          <span className="flex h-7 w-7 items-center justify-center rounded-full bg-[#2563EB] text-sm font-semibold text-white">{n}</span>
+          <span className="flex h-7 w-7 items-center justify-center rounded-full bg-[#D9541E] text-sm font-semibold text-white">{n}</span>
           <h2 className="h2">{title}</h2>
         </div>
         {right}

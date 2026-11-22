@@ -159,8 +159,8 @@ function ResumeStudio() {
             <p className="text-xs text-zinc-500">Score your resume against a role or paste a real job description.</p>
           </div>
           <div className="flex rounded-lg border border-zinc-200 overflow-hidden text-sm">
-            <button onClick={() => setAtsTab("role")} className={`px-3 py-1.5 ${atsTab === "role" ? "bg-[#2563EB] text-white" : "text-zinc-600 hover:bg-zinc-50"}`}>By Role</button>
-            <button onClick={() => setAtsTab("jd")} className={`px-3 py-1.5 ${atsTab === "jd" ? "bg-[#2563EB] text-white" : "text-zinc-600 hover:bg-zinc-50"}`}>Paste JD</button>
+            <button onClick={() => setAtsTab("role")} className={`px-3 py-1.5 ${atsTab === "role" ? "bg-[#D9541E] text-white" : "text-zinc-600 hover:bg-zinc-50"}`}>By Role</button>
+            <button onClick={() => setAtsTab("jd")} className={`px-3 py-1.5 ${atsTab === "jd" ? "bg-[#D9541E] text-white" : "text-zinc-600 hover:bg-zinc-50"}`}>Paste JD</button>
           </div>
         </div>
 
