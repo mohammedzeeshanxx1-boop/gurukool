@@ -1,13 +1,13 @@
 "use client";
 import dynamic from "next/dynamic";
 import { useRef, useState } from "react";
-import { ErrorAlert, Spinner, api, toErr, type ApiErr } from "@/components/ui";
+import { Alert, ErrorAlert, Spinner, api, toErr, type ApiErr } from "@/components/ui";
 import { runInSandbox, type LogLine } from "@/components/sandboxRunner";
 import type { Monaco as MonacoT } from "@monaco-editor/react";
 
 const Monaco = dynamic(() => import("@monaco-editor/react"), {
   ssr: false,
-  loading: () => <div className="flex h-full items-center justify-center text-sm text-zinc-400"><Spinner /> Loading editor…</div>,
+  loading: () => <div className="flex h-full items-center justify-center gap-2 text-sm text-white/50"><Spinner /> Loading editor…</div>,
 });
 
 type Lang = "javascript" | "typescript" | "python" | "cpp" | "c" | "java";
@@ -18,14 +18,6 @@ const LANGS: Record<Lang, { label: string; file: string; runnable: boolean; icon
   cpp:        { label: "C++",        file: "main.cpp", runnable: false, icon: "C++" },
   c:          { label: "C",          file: "main.c",   runnable: false, icon: "C" },
   java:       { label: "Java",       file: "Main.java", runnable: false, icon: "JV" },
-};
-const LANG_COLOR: Record<Lang, string> = {
-  javascript: "bg-zinc-200 text-zinc-700",
-  typescript: "bg-zinc-300 text-zinc-800",
-  python:     "bg-zinc-200 text-zinc-700",
-  cpp:        "bg-zinc-300 text-zinc-800",
-  c:          "bg-zinc-200 text-zinc-700",
-  java:       "bg-zinc-300 text-zinc-800",
 };
 const STARTERS: Record<Lang, string> = {
   javascript: `// CodeLab — JavaScript
@@ -95,17 +87,52 @@ public class Main {
 `,
 };
 
-const QUICK_ASK = [
-  "Explain this code",
-  "Why am I getting this error?",
-  "How can I optimise this?",
-  "What is a closure?",
-];
+const QUICK_ASK = ["Explain this code", "Why am I getting this error?", "How can I optimise this?"];
+
+/* Editor theme matching the landing page's navy code card */
+const NAVY = "#2c303b";
+function defineTheme(m: MonacoT) {
+  m.editor.defineTheme("udaan-navy", {
+    base: "vs-dark",
+    inherit: true,
+    rules: [
+      { token: "", foreground: "c9ccd4" },
+      { token: "comment", foreground: "8b90a0", fontStyle: "italic" },
+      { token: "keyword", foreground: "f29a6b" },
+      { token: "string", foreground: "e6c07b" },
+      { token: "number", foreground: "8fd3ff" },
+      { token: "type", foreground: "8fd3ff" },
+      { token: "delimiter", foreground: "9aa0ad" },
+    ],
+    colors: {
+      "editor.background": NAVY,
+      "editor.foreground": "#c9ccd4",
+      "editorLineNumber.foreground": "#5f6573",
+      "editorLineNumber.activeForeground": "#c9ccd4",
+      "editor.lineHighlightBackground": "#333845",
+      "editor.lineHighlightBorder": "#00000000",
+      "editor.selectionBackground": "#4a5163",
+      "editorCursor.foreground": "#D9541E",
+      "editorIndentGuide.background1": "#383d4a",
+      "editorWidget.background": "#23262f",
+      "editorHoverWidget.background": "#23262f",
+      "editorHoverWidget.border": "#3a3f4c",
+      "editorSuggestWidget.background": "#23262f",
+      "editorSuggestWidget.border": "#3a3f4c",
+      "editorSuggestWidget.selectedBackground": "#3a3f4c",
+      ...Object.fromEntries([1, 2, 3, 4, 5, 6].map((n) => [`editorBracketHighlight.foreground${n}`, "#9aa0ad"])),
+      "editorBracketMatch.background": "#ffffff14",
+      "editorBracketMatch.border": "#00000000",
+      "scrollbarSlider.background": "#ffffff1a",
+      "scrollbarSlider.hoverBackground": "#ffffff2a",
+    },
+  });
+}
 
 type Msg = { role: "user" | "assistant"; content: string };
 const LOG_CLS: Record<LogLine["type"], string> = {
-  log: "text-zinc-100", info: "text-sky-300", warn: "text-amber-300",
-  error: "text-red-400", system: "text-zinc-500",
+  log: "text-[#16181d]", info: "text-[#1570ef]", warn: "text-[#a85a0c]",
+  error: "text-[#b4232f]", system: "text-[#8a909c]",
 };
 
 export default function BuildPage() {
@@ -143,7 +170,7 @@ export default function BuildPage() {
     const L = LANGS[lang];
     setRunning(true);
     const start = performance.now();
-    const out: LogLine[] = [{ type: "system", text: `▶  Running ${L.label}…` }];
+    const out: LogLine[] = [{ type: "system", text: `Running ${L.label}…` }];
     setLogs([...out]);
     if (!L.runnable) {
       out.push({ type: "error", text: `${L.label} execution needs a server-side compiler — not available yet. You can still write and ask the AI about it.` });
@@ -186,58 +213,54 @@ export default function BuildPage() {
     }
   }
 
+  const L = LANGS[lang];
   return (
-    <div className="flex h-[calc(100vh-4rem)] flex-col overflow-hidden bg-zinc-50">
+    <div className="mx-auto flex max-w-[1400px] flex-col gap-5 md:h-[calc(100vh-3.5rem)]">
 
-      {/* Top bar */}
-      <div className="flex shrink-0 items-center justify-between border-b border-zinc-200 bg-white px-4 py-2">
-        <div className="flex items-center gap-3">
-          <span className="text-sm font-semibold text-zinc-900">CodeLab</span>
-          <span className="hidden rounded bg-zinc-100 px-2 py-0.5 text-xs text-zinc-500 sm:inline">sandboxed · no network</span>
+      {/* Header */}
+      <div className="flex shrink-0 flex-wrap items-end justify-between gap-4">
+        <div>
+          <p className="eyebrow">Write · run · ask</p>
+          <h1 className="mt-1.5 font-display text-3xl font-bold tracking-tight text-[#16181d]">CodeLab</h1>
         </div>
-        {/* Language tabs */}
-        <div className="flex items-center gap-1 overflow-x-auto">
-          {(Object.keys(LANGS) as Lang[]).map((l) => (
-            <button key={l} onClick={() => setLang(l)}
-              className={`flex items-center gap-1.5 rounded-lg px-2.5 py-1.5 text-xs font-medium transition-colors ${lang === l ? "bg-[#D9541E] text-white" : "text-zinc-500 hover:bg-zinc-100 hover:text-zinc-800"}`}>
-              <span className={`rounded px-1 py-0.5 text-[10px] font-semibold ${lang === l ? "opacity-90" : ""} ${LANG_COLOR[l]}`}>{LANGS[l].icon}</span>
-              <span className="hidden sm:inline">{LANGS[l].label}</span>
-              {!LANGS[l].runnable && <span className="hidden text-[9px] opacity-50 sm:inline">edit</span>}
-            </button>
-          ))}
-        </div>
-        <div className="flex items-center gap-2">
-          <span className="hidden text-xs text-zinc-400 sm:inline">{LANGS[lang].file}</span>
-          <button onClick={() => { setCodes((c) => ({ ...c, [lang]: STARTERS[lang] })); setLogs([]); }}
-            className="rounded-lg border border-zinc-200 bg-white px-3 py-1.5 text-xs text-zinc-500 hover:border-zinc-300 hover:text-zinc-800 transition-colors">Reset</button>
-          <button onClick={run} disabled={running}
-            className="flex items-center gap-1.5 rounded-lg bg-[#D9541E] px-4 py-1.5 text-xs font-semibold text-white hover:bg-[#bf4518] disabled:opacity-50 transition-colors">
-            {running ? <Spinner /> : <span>▶</span>}
+        <div className="flex items-center gap-2.5">
+          <label className="sr-only" htmlFor="cl-lang">Language</label>
+          <select id="cl-lang" value={lang} onChange={(e) => setLang(e.target.value as Lang)}
+            className="input w-auto cursor-pointer py-2.5 pr-9 font-display font-semibold">
+            {(Object.keys(LANGS) as Lang[]).map((l) => (
+              <option key={l} value={l}>{LANGS[l].label}{LANGS[l].runnable ? "" : " (edit only)"}</option>
+            ))}
+          </select>
+          <button onClick={() => { setCodes((c) => ({ ...c, [lang]: STARTERS[lang] })); setLogs([]); }} className="btn-ghost">Reset</button>
+          <button onClick={run} disabled={running} className="btn-primary px-6">
+            {running ? <Spinner /> : <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M6 4l14 8-14 8z" /></svg>}
             {running ? "Running…" : "Run"}
           </button>
         </div>
       </div>
 
-      {unavailable && (
-        <div className="shrink-0 bg-amber-50 border-b border-amber-100 px-4 py-2 text-xs text-amber-700">
-          Secure sandbox not available in this browser. Try Chrome, Edge or Firefox.
-        </div>
-      )}
+      {unavailable && <Alert kind="warn">Secure sandbox not available in this browser. Try Chrome, Edge or Firefox.</Alert>}
 
-      {/* Main content */}
-      <div className="flex flex-1 overflow-hidden">
+      {/* Workspace */}
+      <div className="grid min-h-0 flex-1 gap-5 lg:grid-cols-[1fr_380px]">
 
-        {/* Left: editor + console */}
-        <div className="flex flex-1 flex-col overflow-hidden border-r border-zinc-200">
-
-          {/* Editor */}
-          <div className="flex-1 overflow-hidden">
+        {/* Editor + output: navy code card with attached white panel, like the landing page */}
+        <div className="flex min-h-[640px] min-w-0 flex-col overflow-hidden rounded-2xl border border-[#e3e5e9] shadow-sm lg:min-h-0">
+          <div className="flex shrink-0 items-center justify-between px-5 py-3.5" style={{ background: NAVY }}>
+            <div className="flex items-center gap-2">
+              {["#ff5f57", "#febc2e", "#28c840"].map((c) => <span key={c} className="h-3 w-3 rounded-full" style={{ background: c }} />)}
+            </div>
+            <span className="font-mono text-xs text-white/50">{L.file}</span>
+          </div>
+          <div className="min-h-0 flex-1" style={{ background: NAVY }}>
             <Monaco
               height="100%"
-              path={`file:///${LANGS[lang].file}`}
+              path={`file:///${L.file}`}
               language={lang}
               value={code}
-              theme="vs"
+              theme="udaan-navy"
+              loading={<div className="flex items-center gap-2 text-sm text-white/50"><Spinner /> Loading editor…</div>}
+              beforeMount={defineTheme}
               onChange={(v) => setCode(v ?? "")}
               onMount={(_editor, m) => {
                 monacoRef.current = m;
@@ -249,133 +272,111 @@ export default function BuildPage() {
               }}
               options={{
                 minimap: { enabled: false },
-                fontSize: 14,
+                fontSize: 15,
+                lineHeight: 26,
                 fontFamily: "'JetBrains Mono', 'Fira Code', 'Cascadia Code', monospace",
                 fontLigatures: true,
                 scrollBeyondLastLine: false,
                 automaticLayout: true,
                 tabSize: 2,
                 lineNumbers: "on",
+                lineNumbersMinChars: 3,
+                lineDecorationsWidth: 16,
+                glyphMargin: false,
+                folding: false,
                 renderLineHighlight: "line",
+                overviewRulerLanes: 0,
+                hideCursorInOverviewRuler: true,
+                overviewRulerBorder: false,
+                guides: { indentation: false, bracketPairs: false },
+                bracketPairColorization: { enabled: false },
+                matchBrackets: "near",
                 cursorBlinking: "smooth",
                 smoothScrolling: true,
-                padding: { top: 12, bottom: 12 },
+                padding: { top: 16, bottom: 16 },
+                scrollbar: { verticalScrollbarSize: 8, horizontalScrollbarSize: 8 },
               }}
             />
           </div>
 
-          {/* Console */}
-          <div className="h-44 shrink-0 border-t border-zinc-200 bg-zinc-900">
-            <div className="flex items-center justify-between border-b border-zinc-700/60 px-4 py-1.5">
-              <div className="flex items-center gap-2">
-                <span className="h-2 w-2 rounded-full bg-emerald-400"></span>
-                <span className="text-xs font-medium text-zinc-400">OUTPUT</span>
+          {/* Output */}
+          <div className="flex h-48 shrink-0 flex-col bg-white">
+            <div className="flex items-center justify-between border-b border-[#e3e5e9] px-5 py-3">
+              <div className="flex items-center gap-2.5">
+                <span className={`h-2 w-2 rounded-full ${running ? "animate-pulse bg-[#D9541E]" : logs.some((l) => l.type === "error") ? "bg-[#d62f45]" : "bg-emerald-500"}`} />
+                <span className="font-display text-[15px] font-bold text-[#16181d]">Output</span>
+                <span className="text-xs text-[#8a909c]">{!L.runnable ? "edit only" : lang === "python" ? "runs in your browser · 60s limit" : "sandboxed · 5s limit"}</span>
               </div>
-              <div className="flex items-center gap-3">
-                <span className="text-xs text-zinc-600">{lang === "python" ? "Pyodide · 60s" : "sandbox · 5s"}</span>
-                {logs.length > 0 && (
-                  <button onClick={() => setLogs([])} className="text-xs text-zinc-600 hover:text-zinc-300 transition-colors">Clear</button>
-                )}
-              </div>
+              {logs.length > 0 && <button onClick={() => setLogs([])} className="text-[13px] font-medium text-[#5f6573] hover:text-[#16181d]">Clear</button>}
             </div>
-            <pre className="h-[calc(100%-32px)] overflow-auto p-4 font-mono text-xs leading-relaxed">
+            <pre className="flex-1 overflow-auto px-5 py-3 font-mono text-[13px] leading-relaxed">
               {logs.length === 0
-                ? <span className="text-zinc-600">Hit Run to see output here…</span>
+                ? <span className="text-[#8a909c]">Press Run to see output here.</span>
                 : logs.map((l, i) => <div key={i} className={`whitespace-pre-wrap ${LOG_CLS[l.type]}`}>{l.text}</div>)}
             </pre>
           </div>
         </div>
 
-        {/* Right: URBro chat */}
-        <div className="flex w-80 shrink-0 flex-col bg-white xl:w-96">
-          {/* Chat header */}
-          <div className="flex items-center justify-between border-b border-zinc-100 px-4 py-3">
-            <div className="flex items-center gap-2.5">
-              <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-[#D9541E] text-sm font-semibold text-white">U</div>
+        {/* URBro */}
+        <aside className="flex min-h-[520px] flex-col overflow-hidden rounded-2xl border border-[#e3e5e9] bg-white shadow-sm lg:min-h-0">
+          <div className="flex items-center justify-between border-b border-[#e3e5e9] px-5 py-4">
+            <div className="flex items-center gap-3">
+              <span className="flex h-10 w-10 items-center justify-center rounded-xl bg-[#D9541E] text-white">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" aria-hidden="true"><path d="M12 3v3M12 18v3M3 12h3M18 12h3M5.6 5.6l2.1 2.1M16.3 16.3l2.1 2.1M5.6 18.4l2.1-2.1M16.3 7.7l2.1-2.1" /></svg>
+              </span>
               <div>
-                <p className="text-sm font-semibold text-zinc-900">URBro</p>
-                <p className="text-[10px] text-zinc-400">code assistant</p>
+                <p className="font-display text-[17px] font-bold leading-tight text-[#16181d]">URBro</p>
+                <p className="text-xs text-[#5f6573]">AI mentor · sees your code &amp; output</p>
               </div>
-              <span className="ml-1 rounded bg-emerald-50 border border-emerald-100 px-2 py-0.5 text-[10px] font-medium text-emerald-600">online</span>
             </div>
-            {messages.length > 0 && (
-              <button onClick={() => setMessages([])} className="text-xs text-zinc-400 hover:text-zinc-700 transition-colors">Clear</button>
-            )}
+            {messages.length > 0 && <button onClick={() => setMessages([])} className="text-[13px] font-medium text-[#5f6573] hover:text-[#16181d]">Clear</button>}
           </div>
 
-          {/* Messages */}
-          <div className="flex-1 overflow-auto px-3 py-3 space-y-3">
+          <div className="flex-1 space-y-4 overflow-auto px-5 py-5">
             {messages.length === 0 ? (
-              <div className="space-y-3">
-                <div className="flex items-start gap-2 px-1">
-                  <div className="mt-0.5 flex h-6 w-6 shrink-0 items-center justify-center rounded-md bg-[#D9541E] text-xs font-semibold text-white">U</div>
-                  <div className="rounded-lg rounded-tl-sm bg-zinc-100 px-3 py-2.5 text-xs leading-relaxed text-zinc-700">
-                    I can see your code and output. Ask me anything about it.
-                  </div>
-                </div>
-                <div className="space-y-1.5 pt-1">
+              <div className="flex h-full flex-col justify-end">
+                <p className="font-display text-xl font-bold leading-snug text-[#16181d]">Stuck? Ask me about your code.</p>
+                <p className="mt-2 text-sm leading-relaxed text-[#5f6573]">I read what&rsquo;s in the editor and the latest output, so you don&rsquo;t need to paste anything.</p>
+                <div className="mt-5 flex flex-wrap gap-2">
                   {QUICK_ASK.map((s) => (
                     <button key={s} onClick={() => ask(s)}
-                      className="w-full rounded-lg border border-zinc-200 bg-zinc-50 px-3 py-2.5 text-left text-xs text-zinc-600 hover:border-zinc-300 hover:bg-zinc-100 hover:text-zinc-800 transition-colors font-medium">
+                      className="rounded-full bg-[#f0f1f3] px-3.5 py-2 text-[13px] font-medium text-[#2c303b] transition-colors hover:bg-[#fbe9e1] hover:text-[#D9541E]">
                       {s}
                     </button>
                   ))}
                 </div>
-                <div className="mt-2 rounded-lg bg-zinc-50 border border-zinc-200 p-3 text-xs text-zinc-500">
-                  <p className="font-semibold text-zinc-700 mb-1">Try asking:</p>
-                  <p className="text-zinc-500">&ldquo;Why is my loop off by one?&rdquo;</p>
-                  <p className="mt-1 text-zinc-500">&ldquo;What&apos;s the time complexity of this?&rdquo;</p>
-                </div>
               </div>
             ) : messages.map((m, i) => (
-              <div key={i} className={`flex items-end gap-2 ${m.role === "user" ? "justify-end" : "justify-start"}`}>
-                {m.role === "assistant" && (
-                  <div className="mb-0.5 flex h-6 w-6 shrink-0 items-center justify-center rounded-md bg-[#D9541E] text-xs font-semibold text-white">U</div>
-                )}
-                <div className={`max-w-[80%] rounded-lg px-3 py-2.5 text-xs leading-relaxed ${
-                  m.role === "user"
-                    ? "bg-[#D9541E] text-white rounded-br-sm"
-                    : "bg-zinc-100 text-zinc-800 rounded-bl-sm"
-                }`}>
+              <div key={i} className={`flex ${m.role === "user" ? "justify-end" : "justify-start"}`}>
+                <div className={`max-w-[88%] rounded-2xl px-4 py-3 text-sm leading-relaxed ${
+                  m.role === "user" ? "rounded-br-md bg-[#2c303b] text-white" : "rounded-bl-md bg-[#f0f1f3] text-[#16181d]"}`}>
                   <div className="whitespace-pre-wrap break-words">{m.content}</div>
                 </div>
               </div>
             ))}
             {busy && (
-              <div className="flex items-end gap-2 justify-start">
-                <div className="mb-0.5 flex h-6 w-6 shrink-0 items-center justify-center rounded-md bg-[#D9541E] text-xs font-semibold text-white">U</div>
-                <div className="bg-zinc-100 rounded-lg rounded-bl-sm px-4 py-3">
-                  <div className="flex gap-1.5 items-center">
-                    <span className="h-1.5 w-1.5 rounded-full bg-zinc-400 animate-pulse"></span>
-                    <span className="h-1.5 w-1.5 rounded-full bg-zinc-400 animate-pulse" style={{ animationDelay: "150ms" }}></span>
-                    <span className="h-1.5 w-1.5 rounded-full bg-zinc-400 animate-pulse" style={{ animationDelay: "300ms" }}></span>
-                  </div>
+              <div className="flex justify-start">
+                <div className="flex items-center gap-1.5 rounded-2xl rounded-bl-md bg-[#f0f1f3] px-4 py-3.5">
+                  {[0, 150, 300].map((d) => <span key={d} className="h-1.5 w-1.5 animate-pulse rounded-full bg-[#8a909c]" style={{ animationDelay: `${d}ms` }} />)}
                 </div>
               </div>
             )}
             <div ref={chatEnd} />
           </div>
 
-          {/* Error */}
-          {chatErr && <div className="px-3 pb-2"><ErrorAlert err={chatErr} /></div>}
+          {chatErr && <div className="px-5 pb-3"><ErrorAlert err={chatErr} /></div>}
 
-          {/* Input */}
-          <div className="border-t border-zinc-100 p-3 bg-white">
-            <form className="flex gap-2" onSubmit={(e) => { e.preventDefault(); ask(q); }}>
-              <input
-                className="flex-1 rounded-lg border border-zinc-200 bg-zinc-50 px-3 py-2.5 text-xs text-zinc-800 placeholder-zinc-400 outline-none focus:border-blue-300 focus:bg-white focus:ring-2 focus:ring-blue-50 transition-colors"
-                placeholder="Ask URBro anything…"
-                value={q}
-                onChange={(e) => setQ(e.target.value)}
-              />
-              <button
-                className="rounded-lg bg-[#D9541E] px-3 py-2.5 text-xs font-semibold text-white hover:bg-[#bf4518] disabled:opacity-30 transition-colors"
-                disabled={busy || !q.trim()}>
-                {busy ? <Spinner /> : "↑"}
+          <form className="border-t border-[#e3e5e9] p-4" onSubmit={(e) => { e.preventDefault(); ask(q); }}>
+            <div className="flex items-center gap-2 rounded-full border-[1.5px] border-[#d5d8de] bg-white py-1.5 pl-5 pr-1.5 transition-[border-color,box-shadow] focus-within:border-[#D9541E] focus-within:shadow-[0_0_0_3px_rgba(217,84,30,0.12)]">
+              <input className="min-w-0 flex-1 bg-transparent text-sm text-[#16181d] outline-none placeholder:text-[#8a909c]"
+                placeholder="Ask URBro anything…" value={q} onChange={(e) => setQ(e.target.value)} aria-label="Ask URBro" />
+              <button aria-label="Send" disabled={busy || !q.trim()}
+                className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-[#D9541E] text-white transition-colors hover:bg-[#bf4518] disabled:opacity-30">
+                {busy ? <Spinner /> : <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.5} strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M12 19V5M5 12l7-7 7 7" /></svg>}
               </button>
-            </form>
-          </div>
-        </div>
+            </div>
+          </form>
+        </aside>
       </div>
     </div>
   );
